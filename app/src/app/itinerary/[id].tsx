@@ -7,14 +7,14 @@ import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
 import { Icon } from '@/components/icon';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { getItinerary } from '@/data/itineraries';
-import { getCategory, getPlace } from '@/data/places';
+import { useContent } from '@/context/content';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function ItineraryScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { getCategory, getItinerary, getPlace } = useContent();
   const itinerary = getItinerary(id);
 
   if (!itinerary) {

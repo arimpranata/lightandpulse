@@ -59,7 +59,8 @@ type Props = {
 };
 
 export function Icon({ name, size = 22, color, style }: Props) {
-  const { ios, android } = ICONS[name];
+  // Icon names can come from the API, so fall back for unknown ones.
+  const { ios, android } = ICONS[name] ?? ICONS.info;
   return (
     <SymbolView
       name={{ ios, android, web: android }}

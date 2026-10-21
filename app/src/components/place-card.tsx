@@ -6,7 +6,8 @@ import { Icon } from '@/components/icon';
 import { PlaceArt } from '@/components/place-art';
 import { SaveButton } from '@/components/save-button';
 import { Radius, Spacing } from '@/constants/theme';
-import { getCategory, REGIONS, type Place } from '@/data/places';
+import { useContent } from '@/context/content';
+import type { Place } from '@/data/places';
 import { useTheme } from '@/hooks/use-theme';
 
 function openPlace(place: Place) {
@@ -15,6 +16,7 @@ function openPlace(place: Place) {
 
 /** Tall card for horizontal carousels. */
 export function FeaturedPlaceCard({ place, width = 260 }: { place: Place; width?: number }) {
+  const { getCategory, regionLabel } = useContent();
   const category = getCategory(place.category);
   return (
     <Pressable
@@ -42,7 +44,7 @@ export function FeaturedPlaceCard({ place, width = 260 }: { place: Place; width?
           <View style={styles.metaRow}>
             <Icon name="location" size={13} color="rgba(255,255,255,0.85)" />
             <AppText variant="caption" style={styles.onArtMuted}>
-              {REGIONS[place.region]}
+              {regionLabel(place.region)}
             </AppText>
           </View>
         </View>
@@ -54,6 +56,7 @@ export function FeaturedPlaceCard({ place, width = 260 }: { place: Place; width?
 /** Compact list row. */
 export function PlaceRow({ place }: { place: Place }) {
   const theme = useTheme();
+  const { getCategory } = useContent();
   const category = getCategory(place.category);
   return (
     <Pressable

@@ -1,0 +1,32 @@
+# Bali Guide — root .htaccess for Hostinger (LiteSpeed) / Apache.
+Options -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # The PHP API has its own .htaccess in /api.
+    RewriteRule ^api(/|$) - [L]
+
+    # Single-page web app: unknown paths (e.g. /place/tanah-lot) load index.html.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    # Bundles and assets have content hashes in their names, so cache them for a year.
+    <FilesMatch "\.(js|css|ttf|otf|woff2?|png|jpe?g|webp|svg)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    # Always revalidate the HTML shell so new deploys show up immediately.
+    <FilesMatch "\.html$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>

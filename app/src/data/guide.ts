@@ -103,3 +103,19 @@ export const EMERGENCY: readonly EmergencyContact[] = [
   { icon: 'fire', label: 'Fire', number: '113' },
   { icon: 'rescue', label: 'Search & rescue', number: '115' },
 ];
+
+export type Guide = {
+  currencies: readonly Currency[];
+  phrases: readonly Phrase[];
+  essentials: readonly GuideTip[];
+  etiquette: readonly GuideTip[];
+  emergency: readonly EmergencyContact[];
+};
+
+export const GUIDE: Guide = {
+  currencies: CURRENCIES,
+  phrases: PHRASES,
+  essentials: ESSENTIALS,
+  etiquette: ETIQUETTE,
+  emergency: EMERGENCY,
+};

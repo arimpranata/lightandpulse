@@ -8,19 +8,17 @@ import { Chip } from '@/components/chip';
 import { Icon } from '@/components/icon';
 import { PlaceRow } from '@/components/place-card';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { CATEGORIES, PLACES, REGIONS, type CategoryId, type RegionId } from '@/data/places';
+import { useContent } from '@/context/content';
+import type { CategoryId, RegionId } from '@/data/places';
 import { useTheme } from '@/hooks/use-theme';
-
-const REGION_IDS = Object.keys(REGIONS) as RegionId[];
-
-function isCategoryId(value: unknown): value is CategoryId {
-  return CATEGORIES.some((category) => category.id === value);
-}
 
 export default function ExploreScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ category?: string }>();
+  const { categories, places, regions, regionLabel } = useContent();
+  const isCategoryId = (value: unknown): value is CategoryId =>
+    categories.some((category) => category.id === value);
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategoryId | null>(
@@ -37,15 +35,15 @@ export default function ExploreScreen() {
 
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return PLACES.filter((place) => {
+    return places.filter((place) => {
       if (category && place.category !== category) return false;
       if (region && place.region !== region) return false;
       if (!needle) return true;
-      return [place.name, place.tagline, place.area, REGIONS[place.region]].some((field) =>
+      return [place.name, place.tagline, place.area, regionLabel(place.region)].some((field) =>
         field.toLowerCase().includes(needle),
       );
     });
-  }, [query, category, region]);
+  }, [query, category, region, places, regionLabel]);
 
   const hasFilters = Boolean(query || category || region);
 
@@ -76,7 +74,7 @@ export default function ExploreScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={styles.chipScroll}>
           <Chip label="All" selected={category === null} onPress={() => setCategory(null)} />
-          {CATEGORIES.map((item) => (
+          {categories.map((item) => (
             <Chip
               key={item.id}
               label={item.label}
@@ -88,10 +86,10 @@ export default function ExploreScreen() {
         </ScrollView>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={styles.chipScroll}>
-          {REGION_IDS.map((id) => (
+          {(Object.keys(regions) as RegionId[]).map((id) => (
             <Chip
               key={id}
-              label={REGIONS[id]}
+              label={regions[id]}
               icon="location"
               selected={region === id}
               onPress={() => setRegion(region === id ? null : id)}

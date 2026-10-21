@@ -5,7 +5,7 @@ import { AppText } from '@/components/app-text';
 import { Chip } from '@/components/chip';
 import { Icon } from '@/components/icon';
 import { Radius, Spacing } from '@/constants/theme';
-import { CURRENCIES } from '@/data/guide';
+import { useContent } from '@/context/content';
 import { useTheme } from '@/hooks/use-theme';
 
 function parseNumber(text: string): number {
@@ -19,14 +19,18 @@ function format(value: number, maximumFractionDigits: number): string {
 
 export function CurrencyConverter() {
   const theme = useTheme();
-  const [code, setCode] = useState<string>(CURRENCIES[0].code);
-  const [rates, setRates] = useState<Record<string, string>>(() =>
-    Object.fromEntries(CURRENCIES.map((currency) => [currency.code, String(currency.perUnitIdr)])),
-  );
+  const { currencies } = useContent().guide;
+  const [selected, setSelected] = useState<string | null>(null);
+  // Rates the traveller typed in; anything not overridden uses the published rate.
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
+
+  const code = currencies.some((currency) => currency.code === selected) ? selected! : currencies[0].code;
+  const published = currencies.find((currency) => currency.code === code)!.perUnitIdr;
+  const rateText = overrides[code] ?? String(published);
   const [amount, setAmount] = useState('50');
   const [toIdr, setToIdr] = useState(true);
 
-  const rate = parseNumber(rates[code]);
+  const rate = parseNumber(rateText);
   const value = parseNumber(amount);
   const converted = toIdr ? value * rate : rate > 0 ? value / rate : 0;
 
@@ -36,12 +40,12 @@ export function CurrencyConverter() {
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-        {CURRENCIES.map((currency) => (
+        {currencies.map((currency) => (
           <Chip
             key={currency.code}
             label={currency.code}
             selected={currency.code === code}
-            onPress={() => setCode(currency.code)}
+            onPress={() => setSelected(currency.code)}
           />
         ))}
       </ScrollView>
@@ -82,8 +86,8 @@ export function CurrencyConverter() {
           1 {code} =
         </AppText>
         <TextInput
-          value={rates[code]}
-          onChangeText={(text) => setRates((current) => ({ ...current, [code]: text }))}
+          value={rateText}
+          onChangeText={(text) => setOverrides((current) => ({ ...current, [code]: text }))}
           keyboardType="number-pad"
           style={[styles.rateInput, { color: theme.text, borderColor: theme.border }]}
           accessibilityLabel={`Exchange rate, rupiah per ${code}`}

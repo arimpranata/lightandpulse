@@ -9,7 +9,8 @@ import { PlaceArt } from '@/components/place-art';
 import { FeaturedPlaceCard } from '@/components/place-card';
 import { SaveButton } from '@/components/save-button';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { getCategory, getPlace, PLACES, REGIONS, type Place } from '@/data/places';
+import { useContent } from '@/context/content';
+import type { Place } from '@/data/places';
 import { useTheme } from '@/hooks/use-theme';
 
 function openInMaps(place: Place) {
@@ -52,6 +53,7 @@ export default function PlaceScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { getCategory, getPlace, places, regionLabel } = useContent();
   const place = getPlace(id);
 
   if (!place) {
@@ -68,7 +70,7 @@ export default function PlaceScreen() {
   }
 
   const category = getCategory(place.category);
-  const nearby = PLACES.filter((other) => other.region === place.region && other.id !== place.id);
+  const nearby = places.filter((other) => other.region === place.region && other.id !== place.id);
 
   return (
     <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content}>
@@ -85,7 +87,7 @@ export default function PlaceScreen() {
           <View style={styles.heroBadge}>
             <Icon name={category.icon} size={13} color="#FFFFFF" />
             <AppText variant="caption" style={styles.onArt}>
-              {category.label} · {REGIONS[place.region]}
+              {category.label} · {regionLabel(place.region)}
             </AppText>
           </View>
           <AppText variant="display" style={styles.onArt}>
@@ -146,7 +148,7 @@ export default function PlaceScreen() {
       {nearby.length > 0 && (
         <View style={styles.section}>
           <AppText variant="title" style={styles.padded}>
-            Also in {REGIONS[place.region]}
+            Also in {regionLabel(place.region)}
           </AppText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
             {nearby.map((other) => (

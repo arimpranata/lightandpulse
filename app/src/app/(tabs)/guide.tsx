@@ -5,7 +5,8 @@ import { AppText } from '@/components/app-text';
 import { CurrencyConverter } from '@/components/currency-converter';
 import { Icon } from '@/components/icon';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { EMERGENCY, ESSENTIALS, ETIQUETTE, PHRASES, type GuideTip } from '@/data/guide';
+import { useContent } from '@/context/content';
+import type { GuideTip } from '@/data/guide';
 import { useTheme } from '@/hooks/use-theme';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -44,6 +45,7 @@ function TipList({ tips }: { tips: readonly GuideTip[] }) {
 export default function GuideScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { essentials, etiquette, phrases, emergency } = useContent().guide;
 
   return (
     <ScrollView
@@ -61,16 +63,16 @@ export default function GuideScreen() {
       </Section>
 
       <Section title="Essentials">
-        <TipList tips={ESSENTIALS} />
+        <TipList tips={essentials} />
       </Section>
 
       <Section title="Etiquette">
-        <TipList tips={ETIQUETTE} />
+        <TipList tips={etiquette} />
       </Section>
 
       <Section title="Useful phrases">
         <View style={styles.phrases}>
-          {PHRASES.map((item) => (
+          {phrases.map((item) => (
             <View
               key={item.phrase}
               style={[styles.phrase, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -90,7 +92,7 @@ export default function GuideScreen() {
 
       <Section title="Emergency">
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          {EMERGENCY.map((contact, index) => (
+          {emergency.map((contact, index) => (
             <Pressable
               key={contact.number}
               onPress={() => Linking.openURL(`tel:${contact.number}`)}

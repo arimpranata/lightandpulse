@@ -90,7 +90,3 @@ export const ITINERARIES: readonly Itinerary[] = [
     ],
   },
 ];
-
-export function getItinerary(id: string): Itinerary | undefined {
-  return ITINERARIES.find((itinerary) => itinerary.id === id);
-}

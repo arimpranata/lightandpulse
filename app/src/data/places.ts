@@ -1,6 +1,7 @@
 import type { IconName } from '@/components/icon';
 
-export type CategoryId = 'temple' | 'beach' | 'nature' | 'waterfall' | 'culture';
+/** Built-in ids are 'temple' | 'beach' | 'nature' | 'waterfall' | 'culture'; the API may add more. */
+export type CategoryId = string;
 
 export type Category = {
   id: CategoryId;
@@ -18,7 +19,7 @@ export const CATEGORIES: readonly Category[] = [
   { id: 'culture', label: 'Culture', icon: 'culture', gradient: ['#6B2D5C', '#D9622B'] },
 ];
 
-export type RegionId = 'south' | 'ubud' | 'highlands' | 'east' | 'north' | 'west' | 'nusa';
+export type RegionId = string;
 
 export const REGIONS: Record<RegionId, string> = {
   south: 'South Bali',
@@ -485,11 +486,3 @@ export const PLACES: readonly Place[] = [
     coordinates: { latitude: -8.4767, longitude: 115.4435 },
   },
 ];
-
-export function getPlace(id: string): Place | undefined {
-  return PLACES.find((place) => place.id === id);
-}
-
-export function getCategory(id: CategoryId): Category {
-  return CATEGORIES.find((category) => category.id === id)!;
-}

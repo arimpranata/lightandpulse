@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 
 import { Colors } from '@/constants/theme';
+import { ContentProvider } from '@/context/content';
 import { SavedPlacesProvider } from '@/context/saved-places';
 
 export default function RootLayout() {
@@ -23,14 +24,16 @@ export default function RootLayout() {
           border: colors.border,
         },
       }}>
-      <SavedPlacesProvider>
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="place/[id]" />
-          <Stack.Screen name="itinerary/[id]" />
-        </Stack>
-      </SavedPlacesProvider>
+      <ContentProvider>
+        <SavedPlacesProvider>
+          <StatusBar style="auto" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="place/[id]" />
+            <Stack.Screen name="itinerary/[id]" />
+          </Stack>
+        </SavedPlacesProvider>
+      </ContentProvider>
     </ThemeProvider>
   );
 }

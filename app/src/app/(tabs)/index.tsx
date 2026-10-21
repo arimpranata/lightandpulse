@@ -8,15 +8,14 @@ import { Icon } from '@/components/icon';
 import { FeaturedPlaceCard } from '@/components/place-card';
 import { SectionHeader } from '@/components/section-header';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { ITINERARIES } from '@/data/itineraries';
-import { CATEGORIES, PLACES } from '@/data/places';
+import { useContent } from '@/context/content';
 import { useTheme } from '@/hooks/use-theme';
-
-const FEATURED = PLACES.filter((place) => place.featured);
 
 export default function DiscoverScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { categories, places, itineraries } = useContent();
+  const featured = places.filter((place) => place.featured);
 
   return (
     <ScrollView
@@ -44,7 +43,7 @@ export default function DiscoverScreen() {
       </Pressable>
 
       <View style={styles.categories}>
-        {CATEGORIES.map((category) => (
+        {categories.map((category) => (
           <Pressable
             key={category.id}
             onPress={() => router.navigate({ pathname: '/explore', params: { category: category.id } })}
@@ -73,7 +72,7 @@ export default function DiscoverScreen() {
           contentContainerStyle={styles.carousel}
           decelerationRate="fast"
           snapToInterval={260 + Spacing.md}>
-          {FEATURED.map((place) => (
+          {featured.map((place) => (
             <FeaturedPlaceCard key={place.id} place={place} />
           ))}
         </ScrollView>
@@ -82,7 +81,7 @@ export default function DiscoverScreen() {
       <View style={styles.section}>
         <SectionHeader title="Ready-made trips" subtitle="Day-by-day plans you can follow" />
         <View style={styles.list}>
-          {ITINERARIES.map((itinerary) => {
+          {itineraries.map((itinerary) => {
             const stops = itinerary.days.reduce((count, day) => count + day.stops.length, 0);
             return (
               <Pressable
