@@ -1,5 +1,6 @@
-import { eventAvailability, experienceAvailability, serviceAvailability, type BookedLookup } from '@/domain/availability';
-import type { BaliEvent, CartLine, DriverService, Experience, Guide, Inventory } from '@/domain/types';
+/** Cart lines priced from inventory records. Shared by the app and the server, which re-prices every order. */
+import { eventAvailability, experienceAvailability, serviceAvailability, type BookedLookup } from './availability';
+import type { BaliEvent, CartLine, DriverService, Experience, Guide, Inventory } from './types';
 
 type NewLine = Omit<CartLine, 'id'>;
 

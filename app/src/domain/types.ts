@@ -102,7 +102,7 @@ export type Experience = {
   included: string[];
   meetingPoint: string;
   cancellationPolicy: CancellationPolicy;
-  demo: true;
+  demo: boolean;
 };
 
 export type TicketType = { id: string; name: string; price: Money; capacityPerShow: number };
@@ -121,7 +121,7 @@ export type BaliEvent = {
   status: 'scheduled' | 'cancelled' | 'postponed';
   rating: { average: number; count: number };
   cancellationPolicy: CancellationPolicy;
-  demo: true;
+  demo: boolean;
 };
 
 export type VerificationStatus = 'verified' | 'pending' | 'suspended';
@@ -133,7 +133,7 @@ export type Vendor = {
   serviceTypes: ('experience' | 'event' | 'guide' | 'transport')[];
   serviceArea: string[];
   communityOwned: boolean;
-  demo: true;
+  demo: boolean;
 };
 
 export type Guide = {
@@ -150,7 +150,7 @@ export type Guide = {
   daysOff: number[];
   bio: string;
   cancellationPolicy: CancellationPolicy;
-  demo: true;
+  demo: boolean;
 };
 
 export type VehicleClass = 'compact' | 'mpv' | 'premium-mpv' | 'van' | 'electric';
@@ -177,7 +177,7 @@ export type DriverService = {
   dayRate: Money;
   daysOff: number[];
   cancellationPolicy: CancellationPolicy;
-  demo: true;
+  demo: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -202,7 +202,7 @@ export type CulturalRule = {
   version: number;
   /** True only when a destination/community/operator/admin source has verified it. */
   verified: boolean;
-  demo: true;
+  demo: boolean;
 };
 
 // ---------------------------------------------------------------------------

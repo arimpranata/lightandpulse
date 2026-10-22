@@ -20,7 +20,7 @@ import { addDays, todayIso } from '@/domain/time';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { useApp, useBooked } from '@/state/app-store';
-import { experienceLine } from '@/state/cart-lines';
+import { experienceLine } from '@/domain/cart-lines';
 
 /** S06 Experience Detail: description, cultural notes, price, availability, reviews. */
 export default function ExperienceScreen() {
@@ -70,7 +70,7 @@ export default function ExperienceScreen() {
           title={experience.title}
           badges={
             <>
-              <Badge label={d.common.demoData} tone="demo" />
+              {experience.demo && <Badge label={d.common.demoData} tone="demo" />}
               {vendor?.verificationStatus === 'verified' ? (
                 <Badge label={d.common.verified} tone="verified" icon="verified" />
               ) : (

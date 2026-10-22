@@ -172,6 +172,12 @@ describe('partial cancellation', () => {
     expect(ledger.refunds).toHaveLength(3);
   });
 
+  it('refuses to cancel a booking twice, so it is never refunded twice', () => {
+    const { ledger } = pay();
+    const once = cancelBooking(ledger, ledger.bookings[0].id, NOW, ids).ledger;
+    expect(() => cancelBooking(once, ledger.bookings[0].id, NOW, ids)).toThrow(InvalidTransitionError);
+  });
+
   it('releases inventory held by cancelled bookings', () => {
     const { ledger } = pay();
     const booked = bookedFromLedger(ledger);

@@ -3,5 +3,10 @@ node_modules/
 build/
 .DS_Store
 
-# Server secrets — never commit real database credentials
-api/config.php
+
+# VPS deployment secrets and backups
+deploy/vps/.env
+deploy/vps/backups/
+
+# Server build output
+server/dist/

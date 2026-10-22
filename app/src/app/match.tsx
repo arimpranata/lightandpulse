@@ -12,7 +12,7 @@ import { partySize } from '@/domain/profile';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { useApp, useBooked } from '@/state/app-store';
-import { driverLine, guideLine } from '@/state/cart-lines';
+import { driverLine, guideLine } from '@/domain/cart-lines';
 
 /** Guide/driver matching for a trip day (spec §15, match_guide / match_driver). */
 export default function MatchScreen() {
@@ -55,7 +55,7 @@ export default function MatchScreen() {
               </AppText>
               <Row>
                 <Badge label={d.common.verified} tone="verified" icon="verified" />
-                <Badge label={d.common.demo} tone="demo" />
+                {match.guide.demo && <Badge label={d.common.demo} tone="demo" />}
                 <AppText variant="caption">{f(d.common.rating, match.guide.rating)}</AppText>
               </Row>
             </Pressable>
@@ -90,7 +90,7 @@ export default function MatchScreen() {
               </AppText>
               <Row>
                 <Badge label={d.common.verified} tone="verified" icon="verified" />
-                <Badge label={d.common.demo} tone="demo" />
+                {match.driver.demo && <Badge label={d.common.demo} tone="demo" />}
                 <AppText variant="caption">{f(d.common.rating, match.driver.rating)}</AppText>
               </Row>
             </Pressable>

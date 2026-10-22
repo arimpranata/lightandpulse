@@ -21,7 +21,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { openInMaps } from '@/services/maps';
 import { useApp, useBooked } from '@/state/app-store';
-import { eventLine } from '@/state/cart-lines';
+import { eventLine } from '@/domain/cart-lines';
 
 /** S08 Event Detail: programme, tickets, venue, transport and nearby services. */
 export default function EventScreen() {
@@ -74,7 +74,7 @@ export default function EventScreen() {
           eyebrow={`${d.kind.event} · ${region(event.venue.region)}`}
           title={event.title}
           subtitle={schedule}
-          badges={<Badge label={d.common.demoData} tone="demo" />}
+          badges={event.demo ? <Badge label={d.common.demoData} tone="demo" /> : undefined}
         />
       }
       footer={

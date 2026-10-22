@@ -74,7 +74,7 @@ export function InventoryCard({ kind, item, ranked, guardian, subtitle, price }:
   const blocked = gate?.decision === 'block';
   const notes = gate ? gate.rules.filter((rule) => rule.severity !== 'info').length : 0;
   const explanation = ranked ? explain(ranked.reasons as Reason[], 2) : null;
-  const isDemo = kind !== 'destination';
+  const isDemo = 'demo' in item && item.demo;
 
   return (
     <Pressable

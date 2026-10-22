@@ -20,7 +20,7 @@ Add new entries at the end with the next number. Do not rewrite a decided entry;
 
 ## D-002: Backend stack and hosting
 
-- **Status:** Open (blocks M01)
+- **Status:** Decided, 2026-10-22: a VPS running Docker (option 1). See [D-019](#d-019-vps-hosting-with-docker-compose) and [D-020](#d-020-platform-api-stack).
 - **Context:** The spec requires NestJS, PostgreSQL with PostGIS, Prisma, Redis/BullMQ, WebSockets and Docker, deployed cloud-agnostically (§7, §40, §50). The current backend is a PHP API on MySQL, built to run on Hostinger Cloud Hosting, which offers PHP and MySQL. As far as we know, Hostinger's shared and cloud hosting plans do not run Docker, PostgreSQL or Redis. Confirm against the plan you hold.
 - **Options:**
   1. **Adopt the spec stack** on a host that runs containers (for example a VPS, including Hostinger's VPS plans, or a managed container platform with managed PostgreSQL). Keep the PHP API only until M02 replaces it.
@@ -31,7 +31,7 @@ Add new entries at the end with the next number. Do not rewrite a decided entry;
 
 ## D-003: Repository layout
 
-- **Status:** Proposed (follows D-002)
+- **Status:** Proposed (follows D-002). Interim layout per [D-020](#d-020-platform-api-stack): `app/`, `server/`, `deploy/vps/`; `api/`, `database/` and the Hostinger bundle are retired.
 - **Proposal:** Convert to the §8 pnpm + Turborepo monorepo during M01: `app/` → `apps/mobile`; new `apps/api`, `apps/admin`, `apps/vendor`; shared `packages/*`; `prisma/` replaces `database/`. Retire `api/`, `database/` and `deploy/` once M02 serves the same content.
 
 ## D-004: Product name
@@ -120,4 +120,24 @@ Add new entries at the end with the next number. Do not rewrite a decided entry;
 - **Status:** Decided, 2026-10-22 (interim)
 - **Decision:** Experiences, events, vendors, guides and drivers are demo records marked `demo: true` and labelled in the UI (§34). Prices, schedules, ratings, transport rates and fee rates are placeholders. Fee rates (`DEMO_FEES`) wait on D-008, transport rates on D-012, and cultural rules on D-010; all are shown with that caveat.
 - **Exit:** replace each with real data from the inventory service and the chosen providers.
+
+## D-019: VPS hosting with Docker Compose
+
+- **Status:** Decided, 2026-10-22 (by the product owner: "Pakai hosting vps agar semua fungsi bisa berjalan")
+- **Decision:** BALI LENS runs on a VPS with Docker Compose: PostgreSQL 16, the platform API (`server/`) and Caddy, which serves the web app and obtains HTTPS certificates automatically. Files are in `deploy/vps/`.
+- **Consequence:** The PHP API, the MySQL schema and the Hostinger upload bundle are retired. Destinations and guide content now come from the platform API's `GET /content`, in the same shape the app already used.
+- **Still open:** VPS provider and size, backups off the server, monitoring and alerting (§37).
+
+## D-020: Platform API stack
+
+- **Status:** Proposed, 2026-10-22 (needs the owner's confirmation)
+- **Context:** The earlier spec named NestJS, Prisma, PostGIS, Redis/BullMQ and WebSockets (§7). Nothing built so far needs queues, sockets or spatial queries: routing uses straight-line distance and there is no background work yet.
+- **Proposal:** Node.js 22 + TypeScript, Fastify, PostgreSQL with plain SQL migrations (`server/migrations`), zod validation and JWT sessions. The server imports the app's pure domain code (`app/src/domain`), so pricing, availability, Cultural Guardian and payment state machines are one implementation on both sides. Add Redis/queues, PostGIS or a framework change when a feature needs them, through a new entry here.
+- **Consequence:** Bookings, payments and settlements are server-authoritative: the server re-prices every order, locks inventory per slot, verifies signed payment webhooks and records an audit trail. The app still plans journeys on the device from server inventory.
+
+## D-021: Accounts and roles
+
+- **Status:** Decided, 2026-10-22 (interim, spec §25)
+- **Decision:** Roles are `traveller`, `vendor`, `admin` and `cultural_reviewer`. A traveller starts as a guest account, created silently on first launch, and can register later without losing bookings. Staff accounts (vendor, admin, reviewer) are created by an admin. The first admin comes from `ADMIN_EMAIL`/`ADMIN_PASSWORD` on first start.
+- **Open within this:** email verification, password reset and social sign-in (need an email provider), community-partner roles (D-010), and data retention (D-014).
 

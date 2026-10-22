@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@/components/icon": [
+        "./src/shims/icon.ts"
+      ],
+      "@/*": [
+        "../app/src/*"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "test",
+    "build.mjs"
+  ]
+}

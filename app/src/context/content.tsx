@@ -4,12 +4,8 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { GUIDE, type Guide } from '@/data/guide';
 import { ITINERARIES, type Itinerary } from '@/data/itineraries';
 import { CATEGORIES, PLACES, REGIONS, type Category, type Place } from '@/data/places';
+import { API_URL } from '@/services/backend';
 
-/**
- * Base URL of the PHP API, e.g. https://your-domain.com/api. Set it in app/.env
- * (EXPO_PUBLIC_API_URL=...). When unset, the app uses only its bundled content.
- */
-const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, '');
 const CACHE_KEY = 'bali:content';
 const TIMEOUT_MS = 8000;
 

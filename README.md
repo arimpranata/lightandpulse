@@ -1,97 +1,110 @@
 # BALI LENS
 
-An AI-powered Bali tourism experience app (iOS, Android and web), with a MySQL database and a small PHP content API that run on Hostinger Cloud Hosting.
+An AI-powered Bali tourism experience platform: a traveller app (iOS, Android and web), a platform API with PostgreSQL, and partner tools for vendors, admins and cultural reviewers. It deploys to a single VPS with Docker Compose.
 
 ```
-app/        Expo (React Native) traveller app, MVP flow and domain logic (see app/README.md)
-api/        PHP 8.1+ read-only REST API that serves content from MySQL
-database/   schema.sql, seed.sql, and scripts to generate the seed and check a deployment
-deploy/     build.sh (produces the upload bundle) and the site's root .htaccess
-docs/       product specification, gap analysis and decision log
+app/          Expo (React Native) traveller app and partner portal; shared domain logic in app/src/domain (see app/README.md)
+server/       Platform API: Node.js + TypeScript, Fastify, PostgreSQL (accounts, inventory, bookings, payments, portals)
+deploy/vps/   Docker Compose, Caddy and backup script for the VPS
+docs/         product specification, gap analysis and decision log
 ```
 
 ## Product specification
 
 The reference for all work is the [BALI LENS build spec](docs/spec/bali-lens-build-spec.md). It replaced the earlier Bali Experience AI v1.0 spec, which is kept in `docs/spec/`.
 
-The app implements the spec's MVP traveller flow end to end against demo inventory: preference onboarding, Bali profile, explore, journey builder, route comparison, one-cart multi-vendor checkout, payment, booking confirmation, guide/driver matching, journey map and the Cultural Guardian. Everything that needs a platform backend (accounts, real payments, AI model, vendor and admin portals) is still to come.
-
 - [`docs/gap-analysis.md`](docs/gap-analysis.md): the spec's acceptance criteria and screens, and what is done.
-- [`docs/decisions.md`](docs/decisions.md): open decisions. The most important is [D-002](docs/decisions.md#d-002-backend-stack-and-hosting), the backend stack and hosting.
+- [`docs/decisions.md`](docs/decisions.md): decisions. Hosting is a VPS with Docker ([D-019](docs/decisions.md#d-019-vps-hosting-with-docker-compose)); the payment provider (D-007) and AI provider (D-009) are still open.
 - [`AGENTS.md`](AGENTS.md): working rules for AI coding agents.
+
+## How it fits together
+
+```
+Phone / browser ──HTTPS──> Caddy (web app, TLS) ──/api──> API (Fastify) ──> PostgreSQL
+                                                           ▲
+                               payment provider ──signed webhook (HMAC)
+```
+
+- **Travellers** start as a guest account (created on first launch) and can register later without losing bookings. Journey planning runs in the app on server inventory; the plan syncs to the server.
+- **Checkout** is server-authoritative: the API re-prices every line from the database, checks cultural rules (a PROHIBITED rule blocks, RESTRICTED/WARNING rules must be acknowledged), locks each slot while it re-checks availability so concurrent checkouts cannot overbook, and creates one order with a child booking per supplier.
+- **Payments** go through a provider adapter. The demo provider moves no money; like a real one, it confirms by calling `POST /payments/webhook` with an HMAC-signed body. Webhooks are verified, stored by event ID and safe to replay. A real provider (Midtrans, Xendit, …) replaces the adapter once D-007 is decided.
+- **Vendors** see only their own products, bookings and payouts, mark bookings completed or no-show, and submit product edits for review.
+- **Admins** approve products, verify or suspend vendors, pay out eligible settlements and read the audit log. **Cultural reviewers** (and admins) edit cultural rules, which creates a new version and clears verification until the rule is verified again.
+- Every financial or moderation change is written to `audit_log` with actor, source, and before/after state.
+
+The partner portal is part of the app at `/portal` (Profile → Partner and admin portal).
 
 ## API
 
-Base URL: `https://your-domain.com/api`
+All responses are JSON. Errors have the shape `{"error": {"code", "message", "details"}}`. Authenticated routes take `Authorization: Bearer <token>`.
 
-| Endpoint | Returns |
-| --- | --- |
-| `GET /health` | `{"status":"ok","database":"connected"}` |
-| `GET /content` | Everything the app needs in one response (used by the app) |
-| `GET /places` | Places, filterable with `?category=temple&region=ubud&q=lake&featured=1` |
-| `GET /places/{id}` | One place, with highlights and tips |
-| `GET /categories`, `GET /regions` | Lookup lists |
-| `GET /itineraries`, `GET /itineraries/{id}` | Day-by-day trips |
-| `GET /guide` | Currencies, phrases, essentials, etiquette and emergency numbers |
+| Route | Who | Purpose |
+| --- | --- | --- |
+| `GET /health` | anyone | Liveness and database check |
+| `GET /content` | anyone | Destinations, trip ideas and guide content |
+| `GET /inventory` | anyone | Published experiences, events, vendors, guides, drivers, cultural rules; payment options |
+| `GET /availability?from&to` | anyone | Seats and services held by live bookings (≤ 60 days) |
+| `POST /auth/guest`, `/auth/register`, `/auth/login`, `/auth/refresh`, `GET /auth/me` | anyone / signed in | Sessions (rate limited) |
+| `GET`/`PUT /me/state` | traveller | Profile, journey and settings |
+| `GET /me/orders` | traveller | Orders, bookings, payments, refunds |
+| `POST /orders` | traveller | Checkout (idempotency key required) |
+| `POST /bookings/:id/cancel` | traveller, admin | Partial cancellation with refund under the line's policy |
+| `POST /payments/webhook` | payment provider | Signed payment callback |
+| `GET /vendor/overview`, `POST /vendor/bookings/:id/complete`, `/no-show`, `PUT /vendor/experiences/:id` | vendor | Vendor portal |
+| `GET /admin/overview`, `POST /admin/vendors/:id/verification`, `/admin/experiences/:id/review`, `/admin/settlements/:id/pay`, `/admin/users` | admin | Admin portal |
+| `GET /cultural/rules`, `PUT /cultural/rules/:id`, `POST /cultural/rules`, `/cultural/rules/:id/verify`, `GET /cultural/rules/:id/versions` | admin, cultural reviewer | Cultural rules |
 
-Responses are JSON, cached for 5 minutes (`cache_seconds` in `config.php`), and allow cross-origin requests (`cors_origins`).
+## Deploying to a VPS
 
-## Deploying to Hostinger
-
-### 1. Create the database
-
-1. In **hPanel**, open your website and go to **Databases → MySQL Databases**.
-2. Create a database and a user. Hostinger prefixes both names with your account ID, for example `u123456789_bali`. Write down the full database name, user name and password.
-3. Open **phpMyAdmin** for that database and use **Import** to upload `database/schema.sql`, then `database/seed.sql`.
-
-Re-importing `schema.sql` drops and recreates every table. Re-importing `seed.sql` on its own resets the content to the defaults.
-
-### 2. Build the upload bundle
-
-On your computer (Node 22+ required):
+You need a VPS with Docker Engine and the Compose plugin (Ubuntu 24.04 with 2 GB RAM is enough to start; building the web app needs the memory), and a domain whose DNS `A` record points at the server. Ports 80 and 443 must be open.
 
 ```bash
-cd app && npm install && cd ..
-deploy/build.sh https://your-domain.com/api
+git clone <this repository> /opt/balilens && cd /opt/balilens/deploy/vps
+cp .env.example .env
+nano .env                 # DOMAIN, POSTGRES_PASSWORD, JWT_SECRET, PSP_WEBHOOK_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
+docker compose up -d --build
 ```
 
-This creates:
+Generate each secret with `openssl rand -hex 32`. On first start the API applies the database migrations, loads the destination content and (unless `SEED_DEMO=false`) the demo marketplace, and creates the admin account. Caddy then obtains the HTTPS certificate.
 
-- `build/bali-guide-public_html.zip`: the web app, the API and `.htaccess` files
-- `build/database/`: copies of the SQL files
+Check:
 
-### 3. Upload the files
+- `https://your-domain/api/health` returns `{"ok":true}`.
+- `https://your-domain` opens the app; Profile shows the account section and the partner portal link.
+- Sign in to `https://your-domain/portal` with the admin account. Create vendor and reviewer accounts with `POST /admin/users`.
 
-1. In hPanel, open **Files → File Manager → public_html**. Delete Hostinger's placeholder `default.php` if it is there.
-2. Upload `bali-guide-public_html.zip` and **Extract** it into `public_html`. Make sure the hidden `.htaccess` files were extracted too.
-3. In `public_html/api`, copy `config.example.php` to **`config.php`** and fill in the database name, user and password from step 1. Keep `'host' => 'localhost'`.
+Update after pulling new code: `docker compose up -d --build`. Migrations run automatically.
 
-### 4. Configure the site
+Backups: `deploy/vps/backup.sh` writes a `pg_dump` to `deploy/vps/backups/` and keeps 14 days. Run it daily from cron and copy the files off the server. Restore with `docker compose exec -T db pg_restore -U balilens -d balilens --clean < backups/<file>.dump`.
 
-- **Advanced → PHP Configuration**: use PHP 8.1 or newer (8.3 recommended). `pdo_mysql` is enabled by default.
-- **Security → SSL**: install the free SSL certificate and turn on **Force HTTPS**.
+### Mobile builds
 
-### 5. Verify
+Set `EXPO_PUBLIC_API_URL=https://your-domain/api` in `app/.env` (or the EAS environment) before building with EAS. The web app built by Compose already points at the same domain.
 
-- Open `https://your-domain.com/api/health`. It should return `"status":"ok"`.
-- Open `https://your-domain.com`. The web app should load, and deep links such as `/place/tanah-lot` should work.
-- Optionally, from your computer: `node database/check-api.mjs https://your-domain.com/api`. This compares the live API with the app's bundled content.
-
-### 6. Point the mobile app at the API
-
-In `app/`, copy `.env.example` to `.env`, set `EXPO_PUBLIC_API_URL=https://your-domain.com/api`, then build with EAS (see `app/README.md`).
-
-## Editing content
-
-Edit rows directly in phpMyAdmin. For example, set `places.published = 0` to hide a place, `places.featured = 1` to show it in Top picks, or update `currencies.per_unit_idr` to change the converter's default rates. Changes appear in the app within about 5 minutes.
-
-To change the default content for new installs, edit `app/src/data/*.ts` and run:
+## Local development
 
 ```bash
-node database/generate-seed.mjs    # rewrites database/seed.sql
+# PostgreSQL 16 running locally, with a database for the API
+cd server && npm install
+export DATABASE_URL=postgres://balilens:devpass@127.0.0.1/balilens ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=admin-password-123
+npm run dev                    # API on http://localhost:3000
+
+cd ../app && npm install
+EXPO_PUBLIC_API_URL=http://localhost:3000 npm run web
+```
+
+Without `EXPO_PUBLIC_API_URL` the app runs entirely on the device with bundled content and demo inventory, as before.
+
+Checks:
+
+```bash
+cd app && npx tsc --noEmit && npx expo lint && npm test
+cd server && npm run typecheck && npm test   # tests need TEST_DATABASE_URL (a disposable database; its schema is dropped)
 ```
 
 ## Security notes
 
-- `api/config.php` holds the database password. It is git-ignored, `.htaccess` blocks web access to it, and the build script never includes it in the bundle.
-- The API is read-only and uses prepared statements throughout. With `debug` set to `false`, database errors are logged rather than shown to visitors.
+- No secrets are committed. Production refuses to start without `JWT_SECRET` and `PSP_WEBHOOK_SECRET` (32+ characters each).
+- Passwords are hashed with scrypt. Tokens are HS256 JWTs (7 days for travellers, 12 hours for staff) and the account is re-checked on every request, so disabling a user takes effect at once.
+- The database and API are not exposed to the internet; only Caddy publishes ports 80 and 443.
+- Card details never reach BALI LENS: real providers collect them in their own tokenised UI.

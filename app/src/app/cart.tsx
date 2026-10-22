@@ -4,14 +4,14 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/app-text';
 import { Stepper } from '@/components/controls';
 import { Icon, type IconName } from '@/components/icon';
-import { Badge, Button, Card, EmptyState, Notice, Row, Screen } from '@/components/ui';
+import { Button, Card, EmptyState, Notice, Row, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { cartTotal, isCartExpired, lineTotal } from '@/domain/commerce';
 import type { CartLine } from '@/domain/types';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { useApp, useBooked } from '@/state/app-store';
-import { lineAvailable } from '@/state/cart-lines';
+import { lineAvailable } from '@/domain/cart-lines';
 
 const LINE_ICON: Record<CartLine['itemType'], IconName> = {
   experience: 'sparkles',
@@ -87,7 +87,6 @@ export default function CartScreen() {
                     <AppText variant="label" color="textSecondary" style={styles.flex}>
                       {d.cart.lineTypes[line.itemType]}
                     </AppText>
-                    <Badge label={d.common.demo} tone="demo" />
                   </Row>
                   <AppText variant="heading">{line.title}</AppText>
                   <AppText variant="caption">

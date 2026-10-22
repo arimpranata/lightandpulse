@@ -13,7 +13,7 @@ import type { JourneyItem } from '@/domain/types';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/state/app-store';
-import { eventLine, experienceLine } from '@/state/cart-lines';
+import { eventLine, experienceLine } from '@/domain/cart-lines';
 
 /** S13 My Journey: editable day plan, bookings and passes. */
 export default function JourneyScreen() {

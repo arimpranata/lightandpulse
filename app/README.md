@@ -16,8 +16,14 @@ The app implements the MVP flow from the [BALI LENS build spec](../docs/spec/bal
 8. **Bookings:** pass codes, per-line cancellation with refund rules, and an operator ledger (fees and settlements) for the demo.
 9. **Map:** the day's stops on a schematic map, etiquette before you go, and Open in Maps.
 10. **Cultural Code, Wallet, Travel essentials** from the Profile tab.
+11. **Account and partner portal** (platform API mode): guest account with optional registration, and `/portal` for vendors, admins and cultural reviewers.
 
-All marketplace inventory (experiences, events, vendors, guides, drivers), prices, transport rates, fee rates and cultural rules is **demo data**, labelled as such in the UI (decision D-018). No real payments are taken.
+The app runs in one of two modes:
+
+- **Platform API mode** (`EXPO_PUBLIC_API_URL` set): content, inventory, availability, orders and payments come from the BALI LENS API in `../server`. Checkout is confirmed by the server once the payment provider's signed webhook arrives.
+- **On-device mode** (no API URL): everything runs on the device against bundled demo inventory, as a self-contained demo.
+
+Marketplace inventory seeded from `src/demo` (experiences, events, vendors, guides, drivers, cultural rules) is **demo data**, labelled as such in the UI (decision D-018). Payments use a demo provider until D-007 is decided; no money moves.
 
 ## Getting started
 
@@ -45,29 +51,33 @@ src/
     (tabs)/               Home, Explore, Journey, Map, Profile
     onboarding/           Welcome, preferences, Bali profile
     destination|experience|event|guide|driver/[id].tsx
-    journey-builder, route, match, cart, checkout, order/[id], cultural-code, wallet, essentials
+    journey-builder, route, match, cart, checkout, order/[id], cultural-code, wallet, essentials, account
+    portal/               Partner portal: sign-in, vendor, admin, cultural rules
   domain/                 Pure TypeScript business logic, no React Native imports
     types.ts              Entities (spec §12, §32)
     ranking.ts            Recommendation score and reasons (§9)
     planner.ts            Journey planning and editing (§10)
     routing.ts            Route comparison (§11)
     commerce.ts           Cart, orders, bookings, payment/settlement state machines (§13, §14)
+    cart-lines.ts         Cart lines priced from inventory records (also used by the server)
     payments.ts           Payment provider interface (§14)
     cultural.ts           Cultural Guardian (§16)
     matching.ts           Guide and driver matching (§15)
     intent.ts             Journey Builder instruction parser
     __tests__/            Jest tests
-  demo/                   Demo inventory and cultural rules
-  services/               Adapters: demo payment provider, maps hand-off
-  state/                  App store (on-device persistence) and cart-line builders
+  demo/                   Demo inventory and cultural rules (seeded into the server's database too)
+  services/               Adapters: platform API client, demo payment provider, maps hand-off
+  state/                  App store (on-device or platform API mode) and portal session
   i18n/                   English and Bahasa Indonesia strings
   components/             Shared UI
-  data/, context/         Destinations and guide content (bundled, or from the PHP API)
+  data/, context/         Destinations and guide content (bundled, or from the platform API)
 ```
 
 ## Content and the API
 
-Destinations, trip ideas and guide content ship with the app in `src/data/`, so it works offline. If `EXPO_PUBLIC_API_URL` is set (copy `.env.example` to `.env`), the app loads that content from the PHP API at startup, caches it, and falls back to the bundled copy when offline (`src/context/content.tsx`). After changing `src/data/`, run `node database/generate-seed.mjs` from the repository root.
+Destinations, trip ideas and guide content ship with the app in `src/data/`, so it works offline. If `EXPO_PUBLIC_API_URL` is set (copy `.env.example` to `.env`), the app loads that content from the platform API at startup, caches it, and falls back to the bundled copy when offline (`src/context/content.tsx`). The server seeds its database from the same `src/data/` and `src/demo/` files on first start; later edits in the database are kept.
+
+`src/domain` and `src/demo` are imported by the server (`server/tsconfig.json` maps `@/*` to `app/src/*`), so keep them free of React Native imports.
 
 ## Building for the stores
 

@@ -369,6 +369,8 @@ export function cancelBooking(
 ): { ledger: Ledger; refund: Refund | null } {
   const booking = ledger.bookings.find((b) => b.id === bookingId);
   if (!booking) return { ledger, refund: null };
+  // Cancelling twice must not refund twice.
+  assertTransition(BOOKING_TRANSITIONS, 'Booking', booking.status, 'cancelled');
   const cancelled = moveBooking(booking, 'cancelled');
   const payment = ledger.payments.find((p) => p.orderId === booking.orderId);
   const quote = cancellationQuote(booking, now);

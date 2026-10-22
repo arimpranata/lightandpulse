@@ -9,11 +9,12 @@ Before changing code, read the parts of the spec that cover your task, then:
 
 ## Where the project is
 
-- `app/`: the Expo traveller app. It runs the spec's MVP flow end to end on the device against demo inventory (D-017). Domain logic is in `app/src/domain` (pure TypeScript, unit-tested), demo data in `app/src/demo`, adapters in `app/src/services`, UI strings in `app/src/i18n` (English and Bahasa Indonesia).
-- `api/` and `database/`: the PHP/MySQL content API for destinations and guide content, deployable to Hostinger.
-- Not built: platform backend, accounts/RBAC, real payment provider, LLM concierge, vendor portal, admin and community tools. The backend stack and hosting are not settled (D-002), so do not start a new backend or replace `api/` or `database/` until D-002 is decided.
+- `app/`: the Expo traveller app and partner portal (`/portal`). With `EXPO_PUBLIC_API_URL` set it uses the platform API; without it, it runs the MVP flow on the device against demo inventory. Domain logic is in `app/src/domain` (pure TypeScript, unit-tested), demo data in `app/src/demo`, adapters in `app/src/services`, UI strings in `app/src/i18n` (English and Bahasa Indonesia).
+- `server/`: the platform API (Node.js, Fastify, PostgreSQL; D-019, D-020). Accounts and roles, inventory, availability, server-authoritative checkout, signed payment webhooks, refunds, vendor and admin portals, cultural rule management and the audit log. SQL migrations are in `server/migrations` (add a new numbered file; never edit an applied one).
+- `deploy/vps/`: Docker Compose deployment (PostgreSQL, API, Caddy).
+- Not built: real payment provider (D-007), LLM concierge (D-009), community control panel, chat, reviews, notifications.
 
-Keep domain logic in `app/src/domain` free of React Native imports so it can move to the backend unchanged.
+The server imports `app/src/domain`, `app/src/demo` and `app/src/data`. Keep them free of React Native imports, so one implementation serves both.
 
 ## Rules (BALI LENS §8, §16, §26; v1.0 spec §43, §44, §52)
 
@@ -34,8 +35,8 @@ Run these until a workspace with shared commands exists:
 
 ```bash
 cd app && npx tsc --noEmit && npx expo lint && npm test   # mobile app and domain tests
-for f in api/*.php; do php -l "$f"; done           # PHP API
-node database/generate-seed.mjs                    # if app/src/data changed; commit the new seed.sql
+cd server && npm run typecheck && npm test                # API integration tests (TEST_DATABASE_URL: a disposable PostgreSQL database)
+POSTGRES_PASSWORD=x JWT_SECRET=x PSP_WEBHOOK_SECRET=x docker compose -f deploy/vps/docker-compose.yml --env-file deploy/vps/.env.example config -q   # if deploy files changed
 ```
 
 Report the files you changed and the results of these checks. Stop and report if a critical acceptance criterion fails.
@@ -43,4 +44,4 @@ Report the files you changed and the results of these checks. Stop and report if
 ## More specific guidance
 
 - `app/AGENTS.md`: Expo and React Native conventions for the mobile app.
-- `README.md`: project layout, API and Hostinger deployment.
+- `README.md`: project layout, API and VPS deployment.

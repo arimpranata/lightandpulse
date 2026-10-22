@@ -9,6 +9,19 @@ export type BookedLookup = (itemId: string, date: string, time?: string) => numb
 
 export const NOTHING_BOOKED: BookedLookup = () => 0;
 
+/**
+ * Held seats or services as reported by the server: key is an experience id
+ * (per time), "event:ticket" (per date) or a guide/driver id (per date).
+ */
+export type BookedRow = { key: string; date: string; time: string | null; count: number };
+
+export function lookupFromRows(rows: BookedRow[]): BookedLookup {
+  return (itemId, date, time) =>
+    rows
+      .filter((row) => row.key === itemId && row.date === date && (time === undefined || row.time === null || row.time === time))
+      .reduce((sum, row) => sum + row.count, 0);
+}
+
 export type AvailabilityResult =
   | { available: true; remaining: number }
   | { available: false; reason: 'no_slot' | 'sold_out' | 'not_scheduled' | 'cancelled' | 'day_off' | 'already_booked' };

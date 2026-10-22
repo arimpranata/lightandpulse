@@ -14,8 +14,9 @@ import type { PaymentMethodId } from '@/domain/payments';
 import type { CulturalRule } from '@/domain/types';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
+import { lineAvailable } from '@/domain/cart-lines';
+import { ApiClientError } from '@/services/backend';
 import { useApp, useBooked } from '@/state/app-store';
-import { lineAvailable } from '@/state/cart-lines';
 
 const newKey = () => `chk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -62,6 +63,16 @@ export default function CheckoutScreen() {
   const ackValid = rules.length === 0 || acknowledged;
   const unavailable = cart.lines.filter((line) => !lineAvailable(line, inventory, booked));
 
+  const checkoutMessage = (caught: unknown) => {
+    if (caught instanceof CheckoutError && caught.code === 'cart_expired') return d.cart.expired;
+    if (caught instanceof ApiClientError) {
+      if (caught.code === 'OFFLINE') return d.checkout.offline;
+      if (caught.code === 'BOOKING_UNAVAILABLE') return d.checkout.soldOut;
+      if (caught.code === 'CULTURAL_RESTRICTION') return d.checkout.ruleChanged;
+    }
+    return d.order.failedBody;
+  };
+
   const pay = async () => {
     setSubmitted(true);
     setError(null);
@@ -73,10 +84,11 @@ export default function CheckoutScreen() {
         method,
         idempotencyKey,
         simulateFailure,
+        acknowledgedRuleIds: rules.map((rule) => rule.id),
       });
       router.replace({ pathname: '/order/[id]', params: { id: orderId } });
     } catch (caught) {
-      setError(caught instanceof CheckoutError && caught.code === 'cart_expired' ? d.cart.expired : d.order.failedBody);
+      setError(checkoutMessage(caught));
       setIdempotencyKey(newKey());
     } finally {
       setPaying(false);

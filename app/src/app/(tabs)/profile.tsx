@@ -11,6 +11,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { partySize } from '@/domain/profile';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
+import { isRemote } from '@/services/backend';
 import { useApp } from '@/state/app-store';
 
 function LinkRow({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
@@ -33,7 +34,7 @@ function LinkRow({ icon, label, onPress }: { icon: IconName; label: string; onPr
 export default function ProfileScreen() {
   const theme = useTheme();
   const { d, f, date, region } = useI18n();
-  const { profile, language, setLanguage, resetAll } = useApp();
+  const { profile, language, setLanguage, resetAll, session } = useApp();
   const summary = useProfileSummary();
   const [confirmReset, setConfirmReset] = useState(false);
   if (!profile || !summary) return null;
@@ -71,15 +72,27 @@ export default function ProfileScreen() {
         </Row>
       </Section>
 
+      {isRemote && (
+        <Section title={d.profile.account}>
+          <AppText variant="caption">
+            {session && !session.user.guest ? f(d.profile.signedInAs, { email: session.user.email ?? '' }) : d.profile.guestAccount}
+          </AppText>
+          {(!session || session.user.guest) && (
+            <Button label={d.account.register} variant="secondary" icon="person" onPress={() => router.push('/account')} />
+          )}
+        </Section>
+      )}
+
       <View style={styles.links}>
         <LinkRow icon="wallet" label={d.profile.wallet} onPress={() => router.push('/wallet')} />
         <LinkRow icon="respect" label={d.profile.culturalCode} onPress={() => router.push('/cultural-code')} />
         <LinkRow icon="guide" label={d.profile.essentials} onPress={() => router.push('/essentials')} />
         <LinkRow icon="cart" label={d.cart.title} onPress={() => router.push('/cart')} />
+        {isRemote && <LinkRow icon="shield" label={d.profile.portal} onPress={() => router.push('/portal')} />}
       </View>
 
       <Section title={d.profile.about}>
-        <AppText variant="caption">{d.profile.aboutBody}</AppText>
+        <AppText variant="caption">{isRemote ? d.profile.aboutRemote : d.profile.aboutBody}</AppText>
         {confirmReset ? (
           <Card style={{ borderColor: theme.danger }}>
             <AppText variant="heading">{d.profile.resetTitle}</AppText>

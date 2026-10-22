@@ -4,38 +4,34 @@ Compares the code, as of 2026-10-22, with the [BALI LENS build spec](spec/bali-l
 
 ## Summary
 
-The spec's MVP traveller flow (§28, §34) runs end to end in the Expo app: onboarding → AI profile → explore → journey builder → route comparison → one-cart multi-vendor checkout → payment → booking confirmation → guide/driver matching → journey map → Cultural Guardian. Planning, ranking, routing, matching, cart, booking and payment logic live in a typed domain layer (`app/src/domain`) with 50 unit tests. Everything runs on the device against demo inventory, behind interfaces a backend can take over.
+The spec's MVP traveller flow (§28, §34) runs end to end: onboarding → AI profile → explore → journey builder → route comparison → one-cart multi-vendor checkout → payment → booking confirmation → guide/driver matching → journey map → Cultural Guardian. Planning, ranking, routing, matching, cart, booking and payment logic live in a typed domain layer (`app/src/domain`, 51 unit tests) that the app and the server share.
 
-What is not built yet needs a platform backend, which depends on the hosting decision ([D-002](decisions.md#d-002-backend-stack-and-hosting)): accounts and RBAC, server-side inventory and booking, a real payment provider, an LLM concierge, the vendor portal, admin tools and the community control panel.
+The platform API (`server/`, PostgreSQL, deployed to a VPS with Docker Compose, D-019) holds accounts and roles, inventory, availability, orders, payments, settlements, refunds, cultural rules and the audit log. Checkout is server-authoritative, payment webhooks are signed and replay-safe, and vendors, admins and cultural reviewers have a portal in the app. Twenty API integration tests run against a real database. Without an API URL, the app still runs the whole flow on the device.
 
-| Status | Meaning |
-| --- | --- |
-| ✅ Done | Implemented and tested in this repository |
-| 🟡 Partial | Implemented on the device or with demo data; needs the backend or a provider to be production-ready |
-| ⛔ Missing | Not started |
+Not built yet: a real payment provider (D-007), the LLM concierge (D-009), verified cultural rules (D-010), the community control panel, chat, reviews and push notifications.
 
 ## Acceptance criteria (§33)
 
 | Area | Done when | Status |
 | --- | --- | --- |
 | Navigation | All five primary tabs exist and route correctly | ✅ Home, Explore, Journey, Map, Profile |
-| Onboarding | Slider preferences persist and generate a structured profile | ✅ Persisted on the device; `profileVector()` produces the §32 JSON shape |
+| Onboarding | Slider preferences persist and generate a structured profile | ✅ Persisted on the device and synced to the server (`/me/state`); `profileVector()` produces the §32 JSON shape |
 | AI | AI can create, explain, edit and re-plan itineraries using inventory tools | 🟡 Rule-based planner and keyword intent parser use the inventory tool functions; no LLM yet (D-009) |
 | Catalog | Destination/experience/event/vendor pages use structured data | ✅ Typed entities; experiences, events and vendors are demo records |
-| Booking | One multi-vendor order end to end in a test environment | ✅ Parent order with child supplier bookings, covered by tests and a browser run |
-| Payment | State transitions modelled and idempotent | ✅ State machines, idempotent order creation, replay-safe callbacks; demo payment provider only |
+| Booking | One multi-vendor order end to end in a test environment | ✅ Server-authoritative: re-priced from the database, slot locks prevent overbooking; API integration tests and a browser run against the API |
+| Payment | State transitions modelled and idempotent | ✅ Idempotent orders, HMAC-signed webhooks stored by event ID (replays are no-ops), refunds; demo provider until D-007 |
 | Mobility | Guide/driver matched and shown in a confirmed booking | ✅ Matching by language, specialty, area, availability, capacity and quality |
 | Map | Route options with cost/time assumptions | ✅ Four modes with stated assumptions; demo rates (D-012) |
 | Culture | Verified rules can block or modify a recommendation | 🟡 Guardian blocks/modifies and gates booking; the demo rules are not yet verified by a community source (D-010) |
-| Vendor | Vendor creates inventory and manages bookings in a portal | ⛔ Needs the backend |
-| Admin | Admin approves content and maintains cultural rules | ⛔ Needs the backend |
-| QA | Critical flows have automated tests and monitoring hooks | 🟡 Domain unit tests; the browser flow was run manually; no CI or monitoring yet |
+| Vendor | Vendor creates inventory and manages bookings in a portal | 🟡 Portal shows own products, bookings and payouts; edits go to review; completion/no-show releases settlement. Creating a new product from scratch is not built yet |
+| Admin | Admin approves content and maintains cultural rules | ✅ Product review, vendor verification, payouts, audit log; cultural rules versioned and verified by admins or cultural reviewers |
+| QA | Critical flows have automated tests and monitoring hooks | 🟡 Domain unit tests and API integration tests (idempotency, concurrent overbooking, webhook signatures and replay, refunds, RBAC, cultural gates); health check and structured logs; no CI or alerting yet |
 
 ## Screens (§7)
 
 | ID | Screen | Status | Where |
 | --- | --- | --- | --- |
-| S01 | Splash / Welcome | ✅ | `src/app/onboarding/index.tsx` (language, guest start; sign-in needs accounts) |
+| S01 | Splash / Welcome | ✅ | `src/app/onboarding/index.tsx` (language, guest start); accounts in `account.tsx` |
 | S02 | Experience Onboarding | ✅ | `onboarding/preferences.tsx` |
 | S03 | AI Profile | ✅ | `onboarding/profile.tsx` |
 | S04 | Home | ✅ | `(tabs)/index.tsx` |
@@ -66,28 +62,29 @@ What is not built yet needs a platform backend, which depends on the hosting dec
 | §11 Route modes with displayed assumptions and careful safety language | `domain/routing.ts`; "Safe/Operational" mode waits for real operational data | 🟡 |
 | §12 Typed entities with stable IDs | `domain/types.ts` | ✅ |
 | §13 One cart, child supplier bookings, per-line policies, fee breakdown, separate settlement, partial cancellation | `domain/commerce.ts`; tested | ✅ (demo fee rates, D-008) |
-| §14 PSP abstraction and status sets for cart, payment, booking, settlement, refund | `domain/payments.ts`, `services/demo-payment-provider.ts` | ✅ / 🟡 real provider pending (D-007) |
+| §14 PSP abstraction and status sets for cart, payment, booking, settlement, refund | `domain/payments.ts`, `server/src/payments.ts` (signed webhooks) | ✅ / 🟡 real provider pending (D-007) |
 | §15 Guide/driver matching; no contact before booking | `domain/matching.ts`; profiles hide contact until confirmed | ✅ |
-| §16 Verified, versioned, owned rules; block/modify; etiquette before booking and navigation | `domain/cultural.ts`; checkout acknowledgement; Map "Before you go" | 🟡 rules unverified (D-010) |
+| §16 Verified, versioned, owned rules; block/modify; etiquette before booking and navigation | `domain/cultural.ts`; rules in the database with versions and verification; the server enforces blocks and acknowledgements at checkout | 🟡 demo rules unverified until owners are appointed (D-010) |
 | §17 Community & destination control panel | — | ⛔ Phase 2 |
-| §18 Vendor portal | — | ⛔ |
+| §18 Vendor portal | `app/src/app/portal/vendor.tsx`, `server/src/routes/vendor.ts` | 🟡 no new-product creation, calendar or messaging yet |
 | §19 Events as first-class inventory | Events are bookable and plannable; pre/post-event suggestions not yet | 🟡 |
 | §20 Search filters | Keyword, type and interest; date, price and language filters not yet | 🟡 |
 | §21 Reviews & trust | Bayesian rating score for ranking; no review submission | 🟡 |
 | §22 Notifications | In-app alerts on Home only; no push | 🟡 |
-| §23 Service boundaries; audit metadata on mutations | Domain modules follow the boundaries; payment audit trail only | 🟡 |
+| §23 Service boundaries; audit metadata on mutations | `audit_log` records actor, source, before/after for orders, payments, bookings, settlements, refunds, moderation and rules | ✅ |
 | §24 AI tool contracts | Functions exist for search, get item, check availability, create booking, calculate route, cultural rules, match guide/driver, payment options, create payment; not yet exposed to an LLM | 🟡 |
-| §25 Privacy & security | No personal data leaves the device; no RBAC (no accounts yet) | 🟡 |
+| §25 Privacy & security | RBAC (traveller, vendor, admin, cultural reviewer); scrypt passwords; JWT sessions; contact data only on bookings; no card data | 🟡 retention and deletion (D-014), password reset |
 | §26 Localization: Bahasa Indonesia + English | Full UI in both languages; content (place and experience descriptions) is English only | 🟡 |
-| §26 Offline resilience | Profile, journey, bookings and pass codes stored on the device | ✅ |
+| §26 Offline resilience | Profile, journey, bookings and pass codes cached on the device | ✅ |
+| §26 Payment callbacks safely replayable; idempotent bookings | `payment_events` keyed by provider event ID; `UNIQUE(user_id, idempotency_key)` | ✅ |
 | §27 Analytics | — | ⛔ |
-| §35 Stack | Expo app matches; backend stack follows D-002 | 🟡 |
+| §35 Stack | Expo app; Node.js/Fastify/PostgreSQL API on a VPS with Docker (D-019, D-020) | 🟡 framework differs from the earlier spec; see D-020 |
 | §36 Design direction | Ocean-blue brand, teal actions, earth/gold accents, rounded cards, map-led discovery; gradients instead of photography | 🟡 |
 
 ## Next steps
 
-1. Decide [D-002](decisions.md#d-002-backend-stack-and-hosting) (backend and hosting), then build the backend that the domain interfaces expect: inventory, availability, cart/order/booking, payments and cultural rules, with RBAC and audit logs (§23, §25).
-2. Choose the payment provider (D-007) and implement its adapter against `PaymentProvider`.
-3. Choose the AI provider (D-009) and expose the §24 tool functions to it; keep the rule-based planner as the validator and fallback.
-4. Appoint cultural rule owners (D-010) and replace the demo rules with verified, sourced records.
-5. Build the vendor portal and admin content tools (MVP items still open), then Phase 2 (§29).
+1. Choose the payment provider (D-007) and implement its adapter against the server's `PaymentProvider`; the webhook endpoint and state machines are ready.
+2. Choose the AI provider (D-009) and expose the §24 tool functions to it through the API; keep the rule-based planner as the validator and fallback.
+3. Appoint cultural rule owners (D-010) and replace the demo rules with verified, sourced records in the portal.
+4. Confirm the API stack (D-020); add CI that runs the app and server checks, and monitoring/alerting on the VPS.
+5. Vendor product creation, availability calendars, email (verification, password reset, booking confirmations), then Phase 2 (§29).

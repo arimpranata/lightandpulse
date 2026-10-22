@@ -14,7 +14,7 @@ import type { DriverService, Guide } from '@/domain/types';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { useApp, useBooked } from '@/state/app-store';
-import { driverLine, guideLine } from '@/state/cart-lines';
+import { driverLine, guideLine } from '@/domain/cart-lines';
 
 type Props = { kind: 'guide'; provider: Guide } | { kind: 'driver'; provider: DriverService };
 
@@ -48,7 +48,7 @@ export function ProviderProfile(props: Props) {
           subtitle={props.kind === 'driver' ? props.provider.vehicle.label : undefined}
           badges={
             <>
-              <Badge label={d.common.demoData} tone="demo" />
+              {provider.demo && <Badge label={d.common.demoData} tone="demo" />}
               {provider.verified ? (
                 <Badge label={d.common.verified} tone="verified" icon="verified" />
               ) : (

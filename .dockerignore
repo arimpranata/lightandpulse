@@ -1,0 +1,7 @@
+**/node_modules
+**/dist
+**/.expo
+.git
+docs
+deploy/vps/.env
+deploy/vps/backups

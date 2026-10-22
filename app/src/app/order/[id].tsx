@@ -20,6 +20,7 @@ export default function OrderScreen() {
   const app = useApp();
   const { ledger, inventory } = app;
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState(false);
   const [showLedger, setShowLedger] = useState(false);
 
   const order = ledger.orders.find((o) => o.id === id);
@@ -111,17 +112,33 @@ export default function OrderScreen() {
                         ? f(d.order.refundFull, { amount: money(quote.refund.amount) })
                         : f(d.order.noRefund, { hours: booking.cancellationPolicy.freeCancellationHours })}
                     </AppText>
+                    {cancelError && (
+                      <AppText variant="caption" color="danger">
+                        {d.order.cancelFailed}
+                      </AppText>
+                    )}
                     <Row>
                       <Button
                         label={d.common.confirm}
                         variant="danger"
                         compact
                         onPress={() => {
-                          app.cancelBooking(booking.id);
-                          setCancelling(null);
+                          setCancelError(false);
+                          app.cancelBooking(booking.id).then(
+                            () => setCancelling(null),
+                            () => setCancelError(true),
+                          );
                         }}
                       />
-                      <Button label={d.order.keep} variant="secondary" compact onPress={() => setCancelling(null)} />
+                      <Button
+                        label={d.order.keep}
+                        variant="secondary"
+                        compact
+                        onPress={() => {
+                          setCancelling(null);
+                          setCancelError(false);
+                        }}
+                      />
                     </Row>
                   </Notice>
                 ) : (
