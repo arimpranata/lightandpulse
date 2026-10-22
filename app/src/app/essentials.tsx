@@ -1,13 +1,14 @@
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { CurrencyConverter } from '@/components/currency-converter';
 import { Icon } from '@/components/icon';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { Screen } from '@/components/ui';
+import { Radius, Spacing } from '@/constants/theme';
 import { useContent } from '@/context/content';
 import type { GuideTip } from '@/data/guide';
 import { useTheme } from '@/hooks/use-theme';
+import { useI18n } from '@/i18n';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -42,21 +43,16 @@ function TipList({ tips }: { tips: readonly GuideTip[] }) {
   );
 }
 
-export default function GuideScreen() {
+export default function EssentialsScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const { d } = useI18n();
   const { essentials, etiquette, phrases, emergency } = useContent().guide;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.lg }]}>
-      <View style={styles.header}>
-        <AppText variant="display">Travel guide</AppText>
-        <AppText variant="body" color="textSecondary">
-          Practical know-how for a respectful, stress-free trip.
-        </AppText>
-      </View>
+    <Screen title={d.profile.essentials}>
+      <AppText variant="body" color="textSecondary">
+        Practical know-how for a respectful, stress-free trip.
+      </AppText>
 
       <Section title="Money">
         <CurrencyConverter />
@@ -120,20 +116,11 @@ export default function GuideScreen() {
           Save your hotel’s address and your embassy’s number before heading out.
         </AppText>
       </Section>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    gap: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxl,
-    width: '100%',
-    maxWidth: MaxContentWidth,
-    alignSelf: 'center',
-  },
-  header: { gap: Spacing.xs },
   section: { gap: Spacing.md },
   card: { borderRadius: Radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   tip: { flexDirection: 'row', gap: Spacing.md, padding: Spacing.lg },

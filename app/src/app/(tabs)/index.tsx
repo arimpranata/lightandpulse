@@ -1,200 +1,213 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMemo } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
+import { CulturalRuleCard } from '@/components/cultural-notice';
 import { Icon } from '@/components/icon';
-import { FeaturedPlaceCard } from '@/components/place-card';
-import { SectionHeader } from '@/components/section-header';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { useContent } from '@/context/content';
+import { InventoryCard } from '@/components/inventory-card';
+import { useProfileSummary } from '@/components/profile-summary';
+import { Button, Notice, Screen, Section } from '@/components/ui';
+import { Radius, Spacing } from '@/constants/theme';
+import { globalRules } from '@/domain/cultural';
+import { allCandidates, rank } from '@/domain/ranking';
+import { hoursUntil, todayIso } from '@/domain/time';
 import { useTheme } from '@/hooks/use-theme';
+import { useI18n } from '@/i18n';
+import { useApp, useBooked } from '@/state/app-store';
 
-export default function DiscoverScreen() {
+function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
+}
+
+/** S04 Home: current journey, next activity, recommendations, alerts. */
+export default function HomeScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
-  const { categories, places, itineraries } = useContent();
-  const featured = places.filter((place) => place.featured);
+  const { d, f, date, money, region } = useI18n();
+  const { profile, journey, alerts, inventory, cart } = useApp();
+  const booked = useBooked();
+  const summary = useProfileSummary();
+
+  const today = todayIso();
+  const tripDate = profile && profile.startDate > today ? profile.startDate : today;
+  const recommendations = useMemo(
+    () => (profile ? rank(allCandidates(inventory), profile, tripDate, inventory, { booked }).slice(0, 5) : []),
+    [profile, inventory, tripDate, booked],
+  );
+  const tip = useMemo(() => {
+    const rules = globalRules(tripDate, inventory);
+    return rules.length ? rules[new Date().getDate() % rules.length] : null;
+  }, [inventory, tripDate]);
+
+  if (!profile) return null;
+
+  const total = profile.tripDays;
+  const offset = daysBetween(profile.startDate, today);
+  const status =
+    offset < -1
+      ? f(d.home.startsIn, { days: -offset, total })
+      : offset === -1
+        ? f(d.home.startsTomorrow, { total })
+        : offset < total
+          ? f(d.home.onTrip, { day: offset + 1, total })
+          : d.home.tripOver;
+
+  // Next activity: the first planned item that has not ended yet (Bali time).
+  const next = journey?.days
+    .flatMap((day, index) => day.items.filter((item) => item.kind !== 'meal').map((item) => ({ day, index, item })))
+    .find(({ day, item }) => hoursUntil(day.date, item.end) > 0);
+
+  const cartLines = cart.status === 'active' ? cart.lines.length : 0;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.lg }]}>
-      <View style={styles.header}>
-        <AppText variant="label" color="accent">
-          Om Swastiastu
+    <Screen root>
+      <LinearGradient colors={['#0B4F6C', '#0B7A70']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+        <AppText variant="label" style={styles.heroLabel}>
+          {d.home.greeting}
         </AppText>
-        <AppText variant="display">Discover Bali</AppText>
-        <AppText variant="body" color="textSecondary">
-          Temples, rice terraces and beaches on the Island of the Gods.
+        <AppText variant="display" style={styles.heroTitle}>
+          {d.home.title}
         </AppText>
-      </View>
+        <AppText variant="body" style={styles.heroBody}>
+          {status}
+        </AppText>
+        {summary && (
+          <AppText variant="caption" style={styles.heroBody} numberOfLines={2}>
+            {summary.sentence}
+          </AppText>
+        )}
+      </LinearGradient>
 
-      <Pressable
-        onPress={() => router.navigate('/explore')}
-        accessibilityRole="search"
-        accessibilityLabel="Search places"
-        style={[styles.search, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Icon name="search" size={18} color={theme.textMuted} />
-        <AppText variant="body" style={{ color: theme.textMuted }}>
-          Search temples, beaches, waterfalls…
-        </AppText>
-      </Pressable>
+      <AppText variant="caption" style={{ color: theme.textMuted }}>
+        {d.common.demoBanner}
+      </AppText>
 
-      <View style={styles.categories}>
-        {categories.map((category) => (
-          <Pressable
-            key={category.id}
-            onPress={() => router.navigate({ pathname: '/explore', params: { category: category.id } })}
-            accessibilityRole="button"
-            accessibilityLabel={category.label}
-            style={({ pressed }) => [styles.categoryItem, { opacity: pressed ? 0.75 : 1 }]}>
-            <LinearGradient colors={category.gradient} style={styles.categoryIcon}>
-              <Icon name={category.icon} size={26} color="#FFFFFF" />
-            </LinearGradient>
-            <AppText variant="caption" style={styles.categoryLabel}>
-              {category.label}
+      {journey ? (
+        <Section title={d.home.nextUp}>
+          {next ? (
+            <Pressable
+              onPress={() => router.navigate('/journey')}
+              accessibilityRole="button"
+              style={[styles.next, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={[styles.nextTime, { backgroundColor: theme.surfaceMuted }]}>
+                <AppText variant="label" color="textSecondary">
+                  {date(next.day.date)}
+                </AppText>
+                <AppText variant="title">{next.item.start}</AppText>
+              </View>
+              <View style={styles.flex}>
+                <AppText variant="heading">{next.item.title}</AppText>
+                <AppText variant="caption">
+                  {f(d.common.day, { n: next.index + 1 })} · {next.day.region ? region(next.day.region) : ''}
+                </AppText>
+              </View>
+              <Icon name="chevronRight" size={16} color={theme.textMuted} />
+            </Pressable>
+          ) : (
+            <AppText variant="body" color="textSecondary">
+              {d.home.nothingNext}
             </AppText>
-          </Pressable>
-        ))}
-      </View>
+          )}
+        </Section>
+      ) : (
+        <Notice icon="sparkles">
+          <View style={styles.noticeBody}>
+            <AppText variant="heading">{d.home.noJourney}</AppText>
+            <AppText variant="caption">{d.home.noJourneyBody}</AppText>
+            <Button
+              label={d.home.plan}
+              icon="sparkles"
+              compact
+              onPress={() => {
+                router.navigate('/journey');
+              }}
+            />
+          </View>
+        </Notice>
+      )}
 
-      <View style={styles.section}>
-        <SectionHeader
-          title="Top picks"
-          subtitle="Unmissable places for a first visit"
-          action={{ label: 'See all', href: '/explore' }}
-        />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carousel}
-          decelerationRate="fast"
-          snapToInterval={260 + Spacing.md}>
-          {featured.map((place) => (
-            <FeaturedPlaceCard key={place.id} place={place} />
-          ))}
-        </ScrollView>
-      </View>
-
-      <View style={styles.section}>
-        <SectionHeader title="Ready-made trips" subtitle="Day-by-day plans you can follow" />
-        <View style={styles.list}>
-          {itineraries.map((itinerary) => {
-            const stops = itinerary.days.reduce((count, day) => count + day.stops.length, 0);
+      {(alerts.length > 0 || cartLines > 0) && (
+        <Section title={d.home.alerts}>
+          {alerts.map((alert, index) => {
+            const dayIndex = journey?.days.findIndex((day) => day.date === alert.date) ?? -1;
+            const text =
+              alert.kind === 'locked_unavailable'
+                ? f(d.home.alertLockedUnavailable, {
+                    title: journey?.days.flatMap((day) => day.items).find((item) => item.id === alert.itemId)?.title ?? '',
+                    date: date(alert.date),
+                  })
+                : alert.kind === 'locked_dropped'
+                  ? f(d.home.alertLockedDropped, { title: alert.title })
+                  : f(d.home.alertUnderfilled, { n: dayIndex + 1 });
             return (
-              <Pressable
-                key={itinerary.id}
-                onPress={() => router.push({ pathname: '/itinerary/[id]', params: { id: itinerary.id } })}
-                accessibilityRole="button"
-                style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
-                <LinearGradient
-                  colors={itinerary.gradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.trip}>
-                  <View style={styles.tripText}>
-                    <AppText variant="heading" style={styles.onArt}>
-                      {itinerary.title}
-                    </AppText>
-                    <AppText variant="caption" style={styles.onArtMuted}>
-                      {itinerary.summary}
-                    </AppText>
-                    <View style={styles.tripMeta}>
-                      <Icon name="calendar" size={13} color="#FFFFFF" />
-                      <AppText variant="caption" style={styles.onArt}>
-                        {itinerary.days.length} {itinerary.days.length === 1 ? 'day' : 'days'} · {stops} stops
-                      </AppText>
-                    </View>
-                  </View>
-                  <Icon name="chevronRight" size={18} color="#FFFFFF" />
-                </LinearGradient>
-              </Pressable>
+              <Notice key={`${alert.kind}-${index}`} icon="alert" tone="warning">
+                <AppText variant="caption">{text}</AppText>
+              </Notice>
             );
           })}
-        </View>
-      </View>
+          {cartLines > 0 && (
+            <Pressable onPress={() => router.push('/cart')} accessibilityRole="button">
+              <Notice icon="cart" tone="info">
+                <AppText variant="caption">
+                  {f(d.home.alertCart, { n: cartLines, time: new Date(cart.expiresAt).toTimeString().slice(0, 5) })}
+                </AppText>
+              </Notice>
+            </Pressable>
+          )}
+        </Section>
+      )}
 
-      <Pressable
-        onPress={() => router.navigate('/guide')}
-        accessibilityRole="button"
-        style={[styles.guideCard, { backgroundColor: theme.surfaceMuted }]}>
-        <View style={[styles.guideIcon, { backgroundColor: theme.gold }]}>
-          <Icon name="tip" size={22} color="#FFFFFF" />
+      <Section
+        title={d.home.recommended}
+        action={<Button label={d.home.openBuilder} variant="ghost" compact onPress={() => router.push('/journey-builder')} />}>
+        <AppText variant="caption">{date(tripDate)}</AppText>
+        <View style={styles.list}>
+          {recommendations.map((ranked) => (
+            <InventoryCard
+              key={ranked.item.id}
+              kind={ranked.kind}
+              item={ranked.item}
+              ranked={ranked}
+              subtitle={region(ranked.kind === 'event' ? ranked.item.venue.region : ranked.item.region)}
+              price={
+                ranked.kind === 'experience'
+                  ? f(d.common.fromPrice, { price: money(ranked.item.price.amount) })
+                  : ranked.kind === 'event'
+                    ? f(d.common.fromPrice, { price: money(ranked.item.ticketTypes[0].price.amount) })
+                    : undefined
+              }
+            />
+          ))}
         </View>
-        <View style={styles.tripText}>
-          <AppText variant="heading">Before you go</AppText>
-          <AppText variant="caption">
-            Tourist levy, temple etiquette, useful phrases and a currency converter.
-          </AppText>
-        </View>
-        <Icon name="chevronRight" size={16} color={theme.textMuted} />
-      </Pressable>
-    </ScrollView>
+      </Section>
+
+      {tip && (
+        <Section
+          title={d.home.culturalTip}
+          action={<Button label={d.culture.title} variant="ghost" compact onPress={() => router.push('/cultural-code')} />}>
+          <CulturalRuleCard rule={tip} />
+        </Section>
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    gap: Spacing.xl,
-    paddingBottom: Spacing.xxl,
-    width: '100%',
-    maxWidth: MaxContentWidth,
-    alignSelf: 'center',
-  },
-  header: { gap: Spacing.xs, paddingHorizontal: Spacing.lg },
-  search: {
+  flex: { flex: 1 },
+  hero: { borderRadius: Radius.xl, padding: Spacing.xl, gap: Spacing.xs },
+  heroLabel: { color: '#BFE9E3' },
+  heroTitle: { color: '#FFFFFF' },
+  heroBody: { color: 'rgba(255,255,255,0.9)' },
+  next: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    height: 48,
-    borderRadius: Radius.pill,
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: Radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  categories: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-  },
-  categoryItem: { alignItems: 'center', gap: Spacing.xs + 2, flex: 1 },
-  categoryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.md + 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryLabel: { fontWeight: '600' },
-  section: { gap: Spacing.md },
-  carousel: { gap: Spacing.md, paddingHorizontal: Spacing.lg },
-  list: { gap: Spacing.md, paddingHorizontal: Spacing.lg },
-  trip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
-  },
-  tripText: { flex: 1, gap: Spacing.xs },
-  tripMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.xs },
-  onArt: { color: '#FFFFFF' },
-  onArtMuted: { color: 'rgba(255,255,255,0.9)' },
-  guideCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
-  },
-  guideIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  nextTime: { padding: Spacing.md, borderRadius: Radius.md, alignItems: 'center', minWidth: 88 },
+  noticeBody: { gap: Spacing.sm, alignItems: 'flex-start' },
+  list: { gap: Spacing.sm },
 });

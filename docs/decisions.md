@@ -1,6 +1,6 @@
 # Decision log
 
-Records product and technical decisions for Bali Experience AI, as §52 of the [specification](spec/bali-experience-ai-spec-v1.0.md) requires: *"Do not invent business policy. Record unresolved business decisions explicitly."*
+Records product and technical decisions for BALI LENS. The practice comes from §52 of the earlier [Bali Experience AI spec](spec/bali-experience-ai-spec-v1.0.md): *"Do not invent business policy. Record unresolved business decisions explicitly."* The current reference is the [BALI LENS build spec](spec/bali-lens-build-spec.md) (D-016).
 
 Each entry has a status:
 
@@ -14,7 +14,7 @@ Add new entries at the end with the next number. Do not rewrite a decided entry;
 
 ## D-001: Adopt the specification as the authoritative reference
 
-- **Status:** Decided, 2026-10-22
+- **Status:** Superseded by [D-016](#d-016-adopt-the-bali-lens-build-spec), 2026-10-22
 - **Decision:** `docs/spec/bali-experience-ai-spec-v1.0.pdf` is the authoritative product and technical specification. The Markdown copy beside it exists for search and review.
 - **Consequence:** New work follows the spec's domain model, roadmap (§42) and agent rules (§43–§44). Where the existing code differs, the gap is tracked in [gap-analysis.md](gap-analysis.md) and resolved through entries in this log.
 
@@ -36,9 +36,9 @@ Add new entries at the end with the next number. Do not rewrite a decided entry;
 
 ## D-004: Product name
 
-- **Status:** Open
-- **Context:** The app ships as "Bali Guide" (`app/app.json`, bundle ID `com.lightandpulse.baliguide`). The spec names the product "Bali Experience AI". Store listings and bundle identifiers are hard to change after release.
-- **Needs:** the final consumer-facing name and bundle identifiers.
+- **Status:** Name decided (BALI LENS, by the spec adopted in D-016); bundle identifiers open
+- **Context:** The app now displays "Bali Lens". The iOS/Android bundle identifiers are still `com.lightandpulse.baliguide` from the prototype; they are hard to change after a store release.
+- **Needs:** the final bundle identifiers before the first store build.
 
 ## D-005: Existing places become Destinations
 
@@ -87,9 +87,9 @@ Add new entries at the end with the next number. Do not rewrite a decided entry;
 
 ## D-013: Launch languages
 
-- **Status:** Open (affects M01 onboarding)
-- **Context:** Onboarding includes a language step (§13). The app is English-only today.
-- **Needs:** MVP languages (for example English and Bahasa Indonesia) and who supplies translations.
+- **Status:** Decided by the BALI LENS spec (§26): Bahasa Indonesia and English at launch
+- **Done:** The whole UI is translated. Destination, experience and event descriptions are still English only.
+- **Needs:** who writes and reviews Bahasa Indonesia content for inventory descriptions.
 
 ## D-014: Data retention and deletion
 
@@ -101,3 +101,23 @@ Add new entries at the end with the next number. Do not rewrite a decided entry;
 - **Status:** Open
 - **Context:** In §4, the Traveller row of the MVP scope table is cut off in the source PDF after "booking, payment, M…". The missing items are unknown.
 - **Needs:** the complete text from the specification's author.
+
+## D-016: Adopt the BALI LENS build spec
+
+- **Status:** Decided, 2026-10-22 (by the product owner, who supplied the updated spec)
+- **Decision:** [`docs/spec/bali-lens-build-spec.md`](spec/bali-lens-build-spec.md) is the authoritative product specification. It replaces the Bali Experience AI v1.0 spec, which stays in `docs/spec/` for reference.
+- **Consequence:** Navigation, screens, ranking weights, status sets and acceptance criteria follow BALI LENS. Engineering rules from v1.0 that BALI LENS does not contradict (tests, idempotency, adapters, no fabricated data) remain in `AGENTS.md`.
+
+## D-017: Build the MVP traveller flow on the device first
+
+- **Status:** Decided, 2026-10-22
+- **Context:** The backend stack and hosting (D-002) are still open, but the spec's MVP is a single coherent demo flow (§28, §34).
+- **Decision:** The traveller app implements the whole MVP flow against demo inventory, with domain logic in `app/src/domain` behind interfaces that mirror the §24 tool contracts. The payment provider is an adapter (`PaymentProvider`) with a demo implementation. When the backend exists, these services move server-side and the app calls them through the API.
+- **Not covered:** vendor portal, admin tools and community control panel, which need the backend and accounts.
+
+## D-018: Demo inventory and placeholder rates
+
+- **Status:** Decided, 2026-10-22 (interim)
+- **Decision:** Experiences, events, vendors, guides and drivers are demo records marked `demo: true` and labelled in the UI (§34). Prices, schedules, ratings, transport rates and fee rates are placeholders. Fee rates (`DEMO_FEES`) wait on D-008, transport rates on D-012, and cultural rules on D-010; all are shown with that caveat.
+- **Exit:** replace each with real data from the inventory service and the chosen providers.
+

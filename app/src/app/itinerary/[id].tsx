@@ -70,7 +70,7 @@ export default function ItineraryScreen() {
                       {!isLast && <View style={[styles.line, { backgroundColor: theme.border }]} />}
                     </View>
                     <Pressable
-                      onPress={() => router.push({ pathname: '/place/[id]', params: { id: place.id } })}
+                      onPress={() => router.push({ pathname: '/destination/[id]', params: { id: place.id } })}
                       accessibilityRole="button"
                       style={({ pressed }) => [
                         styles.stopCard,

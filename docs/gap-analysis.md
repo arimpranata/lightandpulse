@@ -1,99 +1,93 @@
-# Gap analysis: current project vs. specification v1.0
+# Gap analysis: BALI LENS spec vs. this repository
 
-Compares this repository, as of 2026-10-22, with the [Bali Experience AI specification v1.0](spec/bali-experience-ai-spec-v1.0.md). Section numbers (§) refer to the specification. Decisions that this analysis depends on are tracked in [decisions.md](decisions.md).
+Compares the code, as of 2026-10-22, with the [BALI LENS build spec](spec/bali-lens-build-spec.md), which replaced the earlier Bali Experience AI v1.0 spec ([D-016](decisions.md#d-016-adopt-the-bali-lens-build-spec)). Section numbers (§) refer to the BALI LENS spec. Decisions are tracked in [decisions.md](decisions.md).
 
 ## Summary
 
-The repository is a **pre-M01 prototype**: a read-only travel guide, not the connected booking platform the specification describes. It already follows the spec's mobile stack (§7: React Native, Expo, TypeScript strict mode, Expo Router), and its UI, theme and curated content can carry forward. Almost everything else in the spec is still to be built: accounts, preferences, AI, trips, booking, payments, mobility, vendor and admin portals, and cultural governance as enforced data.
+The spec's MVP traveller flow (§28, §34) runs end to end in the Expo app: onboarding → AI profile → explore → journey builder → route comparison → one-cart multi-vendor checkout → payment → booking confirmation → guide/driver matching → journey map → Cultural Guardian. Planning, ranking, routing, matching, cart, booking and payment logic live in a typed domain layer (`app/src/domain`) with 50 unit tests. Everything runs on the device against demo inventory, behind interfaces a backend can take over.
 
-The largest conflict is the backend and hosting. The spec calls for NestJS, PostgreSQL with PostGIS, Prisma, Redis and Docker (§7). The current backend is PHP with MySQL, chosen to run on Hostinger Cloud Hosting. This choice has to be made before M01 starts; see [D-002](decisions.md#d-002-backend-stack-and-hosting).
+What is not built yet needs a platform backend, which depends on the hosting decision ([D-002](decisions.md#d-002-backend-stack-and-hosting)): accounts and RBAC, server-side inventory and booking, a real payment provider, an LLM concierge, the vendor portal, admin tools and the community control panel.
 
 | Status | Meaning |
 | --- | --- |
-| ✅ Matches | Already consistent with the spec |
-| 🟡 Partial | Something comparable exists but needs reshaping |
+| ✅ Done | Implemented and tested in this repository |
+| 🟡 Partial | Implemented on the device or with demo data; needs the backend or a provider to be production-ready |
 | ⛔ Missing | Not started |
-| ⚠️ Conflict | Current choice contradicts the spec; needs a decision |
 
-## By area
+## Acceptance criteria (§33)
 
-### Platform and architecture
-
-| Spec | Current state | Status |
+| Area | Done when | Status |
 | --- | --- | --- |
-| §7 Mobile: React Native + Expo + TypeScript + Expo Router | `app/`: Expo SDK 58, Expo Router, TypeScript `strict: true` | ✅ |
-| §7 State: TanStack Query + Zustand | React context (`app/src/context/content.tsx`, `saved-places.tsx`) with AsyncStorage | 🟡 |
-| §7 Forms: React Hook Form + Zod | No forms yet | ⛔ |
-| §7 Web: Next.js + Tailwind + shadcn/ui (admin, vendor) | Only the Expo web export of the traveller app | ⛔ |
-| §7 Backend: NestJS + TypeScript | `api/`: read-only PHP 8.1 API | ⚠️ |
-| §7 Database: PostgreSQL + PostGIS, Prisma | `database/`: MySQL/MariaDB schema, plain SQL | ⚠️ |
-| §7 Cache/queue, storage, realtime, observability | None | ⛔ |
-| §7 Infrastructure: Docker + CI/CD, cloud-agnostic | Hostinger upload bundle (`deploy/build.sh`); no Docker, no CI | ⚠️ |
-| §8 pnpm + Turborepo monorepo (`apps/`, `packages/`, `prisma/`) | `app/`, `api/`, `database/`, `deploy/` with npm in `app/` only | 🟡 |
+| Navigation | All five primary tabs exist and route correctly | ✅ Home, Explore, Journey, Map, Profile |
+| Onboarding | Slider preferences persist and generate a structured profile | ✅ Persisted on the device; `profileVector()` produces the §32 JSON shape |
+| AI | AI can create, explain, edit and re-plan itineraries using inventory tools | 🟡 Rule-based planner and keyword intent parser use the inventory tool functions; no LLM yet (D-009) |
+| Catalog | Destination/experience/event/vendor pages use structured data | ✅ Typed entities; experiences, events and vendors are demo records |
+| Booking | One multi-vendor order end to end in a test environment | ✅ Parent order with child supplier bookings, covered by tests and a browser run |
+| Payment | State transitions modelled and idempotent | ✅ State machines, idempotent order creation, replay-safe callbacks; demo payment provider only |
+| Mobility | Guide/driver matched and shown in a confirmed booking | ✅ Matching by language, specialty, area, availability, capacity and quality |
+| Map | Route options with cost/time assumptions | ✅ Four modes with stated assumptions; demo rates (D-012) |
+| Culture | Verified rules can block or modify a recommendation | 🟡 Guardian blocks/modifies and gates booking; the demo rules are not yet verified by a community source (D-010) |
+| Vendor | Vendor creates inventory and manages bookings in a portal | ⛔ Needs the backend |
+| Admin | Admin approves content and maintains cultural rules | ⛔ Needs the backend |
+| QA | Critical flows have automated tests and monitoring hooks | 🟡 Domain unit tests; the browser flow was run manually; no CI or monitoring yet |
 
-### Data model (§9–§11)
+## Screens (§7)
 
-| Spec | Current state | Status |
+| ID | Screen | Status | Where |
+| --- | --- | --- | --- |
+| S01 | Splash / Welcome | ✅ | `src/app/onboarding/index.tsx` (language, guest start; sign-in needs accounts) |
+| S02 | Experience Onboarding | ✅ | `onboarding/preferences.tsx` |
+| S03 | AI Profile | ✅ | `onboarding/profile.tsx` |
+| S04 | Home | ✅ | `(tabs)/index.tsx` |
+| S05 | Explore | ✅ | `(tabs)/explore.tsx` (search, type and interest chips, list/map toggle) |
+| S06 | Experience Detail | ✅ | `experience/[id].tsx` (no review texts yet, only rating summaries) |
+| S07 | Destination Detail | 🟡 | `destination/[id].tsx` (no crowd/capacity data source yet) |
+| S08 | Event Detail | ✅ | `event/[id].tsx` |
+| S09 | AI Journey Builder | 🟡 | `journey-builder.tsx` (keyword intent parser, not an LLM) |
+| S10 | Route Compare | 🟡 | `route.tsx` (demo rates and speeds) |
+| S11 | Booking Cart | ✅ | `cart.tsx` |
+| S12 | Checkout & Payment | 🟡 | `checkout.tsx` (demo payment provider; vouchers not modelled) |
+| S13 | My Journey | ✅ | `(tabs)/journey.tsx`, `order/[id].tsx` (pass codes instead of QR images) |
+| S14 | Guide/Driver Profile | ✅ | `guide/[id].tsx`, `driver/[id].tsx`, `match.tsx` |
+| S15 | Chat / Trip Support | ⛔ | Needs messaging backend |
+| S16 | Map Live Journey | 🟡 | `(tabs)/map.tsx` (schematic map; no live location, pickup or ETA) |
+| S17 | Rental | ⛔ | Phase 2 (§29) |
+| S18 | Wallet / Loyalty | 🟡 | `wallet.tsx` (transactions and refunds; loyalty is Phase 2) |
+| S19 | Cultural Code | ✅ | `cultural-code.tsx` |
+| S20 | Post-Trip | ⛔ | Reviews need verified purchasers on the backend (§21) |
+
+## Domain and rules
+
+| Spec | Implementation | Status |
 | --- | --- | --- |
-| Destination: name, slug, geo, region/district, crowd, sustainability, cultural sensitivity | `places`: name, region, area, lat/lng, description, tips. Closest match to Destination; no crowd, sustainability or sensitivity fields | 🟡 |
-| Experience, Package, Event, Ticket, Vendor | Not modelled. Current "places" are attractions, not bookable vendor products | ⛔ |
-| Trip / ItineraryDay / ItineraryItem | `itineraries`, `itinerary_days`, `itinerary_stops` are curated templates, not user trips; no dates, costs or route references | 🟡 |
-| CulturalRule with severity INFO/WARNING/RESTRICTED/PROHIBITED (§28) | Etiquette and per-place tips exist as free text (`guide_tips`, `place_tips`), with no severity, entity links, reviewer or validity dates | 🟡 |
-| User, TravellerPreference, Booking, Payment, RevenueAllocation, Payout, Availability, Notification, AuditLog, ConsentLog | None | ⛔ |
-| §11 Opaque UUID/CUID IDs | Human-readable slugs (`tanah-lot`) used as primary keys. These can become the Destination `slug` field | ⚠️ |
-| §11 Money as decimal plus explicit currency | Entry fees are display strings (`≈ IDR 75,000`); exchange rates are `DECIMAL(12,2)` | 🟡 |
-| §11 PostGIS for geography | `DECIMAL(9,6)` latitude/longitude | ⚠️ (follows D-002) |
-| §11 Timestamps in UTC | `TIMESTAMP` columns (stored as UTC by MySQL) | ✅ |
-| §41 Mark demo records explicitly | Seed is curated real-world content with indicative fees; no demo flag | ⛔ |
+| §8 AI never the source of truth for prices, availability or rules | Planner and ranking read inventory records only; reasons are structured facts | ✅ |
+| §9 Ranking weights; commission never a factor; explanations | `domain/ranking.ts` with the exact weights; tested | ✅ |
+| §10 No overlaps, travel and buffer, opening hours, clustering, pace, meals, hard cultural constraints, locks, alternatives instead of silent replacement | `domain/planner.ts`; tested | ✅ |
+| §11 Route modes with displayed assumptions and careful safety language | `domain/routing.ts`; "Safe/Operational" mode waits for real operational data | 🟡 |
+| §12 Typed entities with stable IDs | `domain/types.ts` | ✅ |
+| §13 One cart, child supplier bookings, per-line policies, fee breakdown, separate settlement, partial cancellation | `domain/commerce.ts`; tested | ✅ (demo fee rates, D-008) |
+| §14 PSP abstraction and status sets for cart, payment, booking, settlement, refund | `domain/payments.ts`, `services/demo-payment-provider.ts` | ✅ / 🟡 real provider pending (D-007) |
+| §15 Guide/driver matching; no contact before booking | `domain/matching.ts`; profiles hide contact until confirmed | ✅ |
+| §16 Verified, versioned, owned rules; block/modify; etiquette before booking and navigation | `domain/cultural.ts`; checkout acknowledgement; Map "Before you go" | 🟡 rules unverified (D-010) |
+| §17 Community & destination control panel | — | ⛔ Phase 2 |
+| §18 Vendor portal | — | ⛔ |
+| §19 Events as first-class inventory | Events are bookable and plannable; pre/post-event suggestions not yet | 🟡 |
+| §20 Search filters | Keyword, type and interest; date, price and language filters not yet | 🟡 |
+| §21 Reviews & trust | Bayesian rating score for ranking; no review submission | 🟡 |
+| §22 Notifications | In-app alerts on Home only; no push | 🟡 |
+| §23 Service boundaries; audit metadata on mutations | Domain modules follow the boundaries; payment audit trail only | 🟡 |
+| §24 AI tool contracts | Functions exist for search, get item, check availability, create booking, calculate route, cultural rules, match guide/driver, payment options, create payment; not yet exposed to an LLM | 🟡 |
+| §25 Privacy & security | No personal data leaves the device; no RBAC (no accounts yet) | 🟡 |
+| §26 Localization: Bahasa Indonesia + English | Full UI in both languages; content (place and experience descriptions) is English only | 🟡 |
+| §26 Offline resilience | Profile, journey, bookings and pass codes stored on the device | ✅ |
+| §27 Analytics | — | ⛔ |
+| §35 Stack | Expo app matches; backend stack follows D-002 | 🟡 |
+| §36 Design direction | Ocean-blue brand, teal actions, earth/gold accents, rounded cards, map-led discovery; gradients instead of photography | 🟡 |
 
-### Traveller app (§12–§18)
+## Next steps
 
-| Spec | Current state | Status |
-| --- | --- | --- |
-| §12 Tabs: Home, Explore, AI, My Bali, Profile | Tabs: Discover, Explore, Saved, Guide | 🟡 |
-| §12 Auth and Onboarding stacks | None | ⛔ |
-| §12 Detail routes (Experience, Destination, Event, Guide, Driver, Rental, Booking, Payment, Trip) | `place/[id]` (≈ Destination) and `itinerary/[id]` (≈ Trip template) | 🟡 |
-| §13 Onboarding flow and §14 preference sliders | None | ⛔ |
-| §15 Home: "How do you want to experience Bali?", CREATE MY BALI, Recommended, Near You, What's Happening, Cultural Tip, Active Trip | Discover tab: greeting, search, categories, top picks, ready-made trips, guide teaser | 🟡 |
-| §16 Experience detail (AI match, included, schedule, cultural guidelines, local impact, reviews, BOOK NOW) | Place detail: facts, description, highlights, local tips, Open in Maps, nearby places | 🟡 |
-| §17 My Bali and Live Trip | Saved list and itinerary timeline only | ⛔ |
-| §18 `<CulturalTip />`, `<CulturalWarning />`, `<CulturalRestriction />` | Etiquette list and tips card, not severity-driven components | 🟡 |
-| §46 Offline: confirmed itinerary/tickets available offline | Content falls back to the bundled copy and the last cached API response | 🟡 |
-| §39 Loading/empty/error/success states | Empty states exist (Explore, Saved); no loading or error UI because content is local | 🟡 |
-
-### API (§19–§20)
-
-| Spec | Current state | Status |
-| --- | --- | --- |
-| §19 REST domains: auth, users, catalogue, search, trips, itinerary, AI, booking, payment, mobility, culture, reviews, notifications | `/content`, `/places`, `/itineraries`, `/guide`, `/categories`, `/regions`, `/health` (read-only catalogue) | 🟡 |
-| §20 Envelope `{ success, data, meta.requestId }` and error codes | Bare JSON bodies and `{ "error": "message" }` | ⚠️ |
-| §39 OpenAPI | None | ⛔ |
-| §35 Rate limiting, JWT, RBAC | Not applicable yet (no auth or writes); CORS and `nosniff` headers set | ⛔ |
-
-### AI, booking, payments, mobility, portals (§21–§33)
-
-None of these exist yet: AI gateway and tools (§24–§27), recommendation scoring (§26), booking state machine and inventory (§21), payment adapters and webhooks (§22), revenue allocation (§23), smart routing (§30), vendor portal (§31), admin portal (§32), notifications and realtime (§33). Status for all: ⛔.
-
-### Quality, delivery and documentation (§34–§51)
-
-| Spec | Current state | Status |
-| --- | --- | --- |
-| §37 Unit, integration, E2E, contract, security tests | None automated. Checks so far were typecheck, lint, `php -l`, `database/check-api.mjs` and manual browser runs | ⛔ |
-| §40 CI pipeline | None | ⛔ |
-| §34 Privacy and consent | No personal data collected yet; Saved list stays on the device | ✅ for now |
-| §50 `pnpm` commands, `docker compose`, Prisma migrate/seed | `npm` in `app/`, SQL files imported through phpMyAdmin | ⚠️ (follows D-002) |
-| §51 Required docs (17 files under `docs/`) | `README.md`, `app/README.md`, this analysis and the decision log | ⛔ Write each doc in the milestone that builds its area |
-
-## What carries forward
-
-- **Expo app shell:** navigation, theme tokens with light and dark mode, shared components (`AppText`, `Chip`, `Icon`, place cards, `PlaceArt`) and the currency converter.
-- **Curated content:** 22 destinations with coordinates, highlights and tips; phrases, etiquette, essentials and emergency numbers. Destinations map to the spec's Destination entity. Etiquette and tips are draft input for `CulturalRule` records, which still need a reviewer (§28).
-- **Offline-first content loading:** the bundled-fallback-plus-cache pattern in `content.tsx` is a starting point for §46 (connectivity loss).
-- **Cultural framing:** temple dress code, offerings and Nyepi guidance already present in the Guide tab.
-
-## Suggested next steps
-
-1. Resolve [D-002](decisions.md#d-002-backend-stack-and-hosting) (backend and hosting), since every milestone depends on it.
-2. **M01 Foundation (§45):** pnpm/Turborepo monorepo, move `app/` to `apps/mobile`, NestJS API, Prisma with PostgreSQL/PostGIS, Docker Compose, auth, RBAC, preferences, OpenAPI, tests and CI.
-3. **M02 Catalogue:** migrate the current destinations into the new schema (slugs kept as a field, opaque IDs as keys), add Vendor, Experience and Event, then retire `api/` and `database/` once the app reads from the new API.
-4. Write each §51 document as its milestone lands, starting with `architecture.md`, `database.md` and `api.md` in M01.
+1. Decide [D-002](decisions.md#d-002-backend-stack-and-hosting) (backend and hosting), then build the backend that the domain interfaces expect: inventory, availability, cart/order/booking, payments and cultural rules, with RBAC and audit logs (§23, §25).
+2. Choose the payment provider (D-007) and implement its adapter against `PaymentProvider`.
+3. Choose the AI provider (D-009) and expose the §24 tool functions to it; keep the rule-based planner as the validator and fallback.
+4. Appoint cultural rule owners (D-010) and replace the demo rules with verified, sourced records.
+5. Build the vendor portal and admin content tools (MVP items still open), then Phase 2 (§29).

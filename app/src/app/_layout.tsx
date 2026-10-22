@@ -4,7 +4,7 @@ import { useColorScheme } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 import { ContentProvider } from '@/context/content';
-import { SavedPlacesProvider } from '@/context/saved-places';
+import { AppStoreProvider } from '@/state/app-store';
 
 export default function RootLayout() {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
@@ -25,14 +25,10 @@ export default function RootLayout() {
         },
       }}>
       <ContentProvider>
-        <SavedPlacesProvider>
+        <AppStoreProvider>
           <StatusBar style="auto" />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="place/[id]" />
-            <Stack.Screen name="itinerary/[id]" />
-          </Stack>
-        </SavedPlacesProvider>
+          <Stack screenOptions={{ headerShown: false }} />
+        </AppStoreProvider>
       </ContentProvider>
     </ThemeProvider>
   );

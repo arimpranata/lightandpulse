@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Bali Guide",
-    "slug": "bali-guide",
+    "name": "Bali Lens",
+    "slug": "bali-lens",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "baliguide",
+    "scheme": "balilens",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,

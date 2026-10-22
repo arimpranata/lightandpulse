@@ -1,9 +1,9 @@
-# Bali Guide
+# BALI LENS
 
-A Bali travel app (iOS, Android and web) with a MySQL database and a small PHP API. It is designed to run on Hostinger Cloud Hosting.
+An AI-powered Bali tourism experience app (iOS, Android and web), with a MySQL database and a small PHP content API that run on Hostinger Cloud Hosting.
 
 ```
-app/        Expo (React Native) app: mobile app and web version (see app/README.md)
+app/        Expo (React Native) traveller app, MVP flow and domain logic (see app/README.md)
 api/        PHP 8.1+ read-only REST API that serves content from MySQL
 database/   schema.sql, seed.sql, and scripts to generate the seed and check a deployment
 deploy/     build.sh (produces the upload bundle) and the site's root .htaccess
@@ -12,13 +12,13 @@ docs/       product specification, gap analysis and decision log
 
 ## Product specification
 
-This project is the starting point for **Bali Experience AI**. Its specification is in [`docs/spec/`](docs/spec/bali-experience-ai-spec-v1.0.pdf) and is the reference for all further work. The current code is an early prototype, a read-only travel guide, ahead of the spec's first milestone (M01 Foundation).
+The reference for all work is the [BALI LENS build spec](docs/spec/bali-lens-build-spec.md). It replaced the earlier Bali Experience AI v1.0 spec, which is kept in `docs/spec/`.
 
-- [`docs/gap-analysis.md`](docs/gap-analysis.md) compares what exists today with the spec.
-- [`docs/decisions.md`](docs/decisions.md) lists open decisions. The most important one is [D-002](docs/decisions.md#d-002-backend-stack-and-hosting): the spec's stack (NestJS, PostgreSQL with PostGIS, Redis, Docker) differs from the PHP and MySQL setup for Hostinger described below.
-- [`AGENTS.md`](AGENTS.md) holds the working rules for AI coding agents, taken from the spec.
+The app implements the spec's MVP traveller flow end to end against demo inventory: preference onboarding, Bali profile, explore, journey builder, route comparison, one-cart multi-vendor checkout, payment, booking confirmation, guide/driver matching, journey map and the Cultural Guardian. Everything that needs a platform backend (accounts, real payments, AI model, vendor and admin portals) is still to come.
 
-The app works without the API, using content bundled into it. With the API connected, content edited in the database (places, itineraries, exchange rates, phrases and so on) reaches the app the next time it starts, without publishing a new app version.
+- [`docs/gap-analysis.md`](docs/gap-analysis.md): the spec's acceptance criteria and screens, and what is done.
+- [`docs/decisions.md`](docs/decisions.md): open decisions. The most important is [D-002](docs/decisions.md#d-002-backend-stack-and-hosting), the backend stack and hosting.
+- [`AGENTS.md`](AGENTS.md): working rules for AI coding agents.
 
 ## API
 

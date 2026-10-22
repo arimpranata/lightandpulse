@@ -1,9 +1,6 @@
 # Agent instructions
 
-This repository is building **Bali Experience AI**, an AI-powered tourism platform for Bali. The authoritative product and technical specification is:
-
-- [`docs/spec/bali-experience-ai-spec-v1.0.pdf`](docs/spec/bali-experience-ai-spec-v1.0.pdf) (original)
-- [`docs/spec/bali-experience-ai-spec-v1.0.md`](docs/spec/bali-experience-ai-spec-v1.0.md) (searchable transcription; the PDF wins if they differ)
+This repository is building **BALI LENS**, an AI-powered Bali tourism experience platform. The authoritative product specification is [`docs/spec/bali-lens-build-spec.md`](docs/spec/bali-lens-build-spec.md) (decision D-016). The earlier Bali Experience AI v1.0 spec in `docs/spec/` is kept for reference; its engineering rules below still apply where BALI LENS does not contradict them.
 
 Before changing code, read the parts of the spec that cover your task, then:
 
@@ -12,9 +9,13 @@ Before changing code, read the parts of the spec that cover your task, then:
 
 ## Where the project is
 
-The code is a **pre-M01 prototype**: a read-only traveller guide (Expo app in `app/`, PHP API in `api/`, MySQL schema in `database/`). The spec's roadmap starts at M01 Foundation (§42, §45). The backend stack and hosting are not settled yet (decision D-002), so do not start the M01 monorepo or replace `api/` or `database/` until D-002 is decided.
+- `app/`: the Expo traveller app. It runs the spec's MVP flow end to end on the device against demo inventory (D-017). Domain logic is in `app/src/domain` (pure TypeScript, unit-tested), demo data in `app/src/demo`, adapters in `app/src/services`, UI strings in `app/src/i18n` (English and Bahasa Indonesia).
+- `api/` and `database/`: the PHP/MySQL content API for destinations and guide content, deployable to Hostinger.
+- Not built: platform backend, accounts/RBAC, real payment provider, LLM concierge, vendor portal, admin and community tools. The backend stack and hosting are not settled (D-002), so do not start a new backend or replace `api/` or `database/` until D-002 is decided.
 
-## Rules (from spec §43, §44 and §52)
+Keep domain logic in `app/src/domain` free of React Native imports so it can move to the backend unchanged.
+
+## Rules (BALI LENS §8, §16, §26; v1.0 spec §43, §44, §52)
 
 - Read the repository and docs before making changes. Preserve working code; do not rewrite it without a reason.
 - Prefer small, domain-scoped changes. Maintain shared types. Avoid unnecessary dependencies.
@@ -29,10 +30,10 @@ The code is a **pre-M01 prototype**: a read-only traveller guide (Expo app in `a
 
 ## Checks to run before finishing
 
-Until M01 introduces the spec's `pnpm` workspace commands (§50), use the current ones:
+Run these until a workspace with shared commands exists:
 
 ```bash
-cd app && npx tsc --noEmit && npx expo lint      # mobile app
+cd app && npx tsc --noEmit && npx expo lint && npm test   # mobile app and domain tests
 for f in api/*.php; do php -l "$f"; done           # PHP API
 node database/generate-seed.mjs                    # if app/src/data changed; commit the new seed.sql
 ```
