@@ -1,0 +1,66 @@
+# BALI LENS on a single VPS: PostgreSQL, the platform API and Caddy (HTTPS + web app).
+#   cd deploy/vps && cp .env.example .env   # fill in every value
+#   docker compose up -d --build
+name: balilens
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-balilens}
+      POSTGRES_USER: ${POSTGRES_USER:-balilens}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-balilens}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-balilens}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      PSP_WEBHOOK_SECRET: ${PSP_WEBHOOK_SECRET:?Set PSP_WEBHOOK_SECRET in .env}
+      CORS_ORIGINS: https://${DOMAIN}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      DEMO_VENDOR_PASSWORD: ${DEMO_VENDOR_PASSWORD:-}
+    # Not published: only Caddy reaches it, on the internal network.
+    expose:
+      - "3000"
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/vps/web.Dockerfile
+      args:
+        EXPO_PUBLIC_API_URL: https://${DOMAIN:?Set DOMAIN in .env}/api
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

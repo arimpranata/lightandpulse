@@ -1,0 +1,12 @@
+# Dependencies & build output
+node_modules/
+build/
+.DS_Store
+
+
+# VPS deployment secrets and backups
+deploy/vps/.env
+deploy/vps/backups/
+
+# Server build output
+server/dist/
