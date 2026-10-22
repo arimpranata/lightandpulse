@@ -7,7 +7,16 @@ app/        Expo (React Native) app: mobile app and web version (see app/README.
 api/        PHP 8.1+ read-only REST API that serves content from MySQL
 database/   schema.sql, seed.sql, and scripts to generate the seed and check a deployment
 deploy/     build.sh (produces the upload bundle) and the site's root .htaccess
+docs/       product specification, gap analysis and decision log
 ```
+
+## Product specification
+
+This project is the starting point for **Bali Experience AI**. Its specification is in [`docs/spec/`](docs/spec/bali-experience-ai-spec-v1.0.pdf) and is the reference for all further work. The current code is an early prototype, a read-only travel guide, ahead of the spec's first milestone (M01 Foundation).
+
+- [`docs/gap-analysis.md`](docs/gap-analysis.md) compares what exists today with the spec.
+- [`docs/decisions.md`](docs/decisions.md) lists open decisions. The most important one is [D-002](docs/decisions.md#d-002-backend-stack-and-hosting): the spec's stack (NestJS, PostgreSQL with PostGIS, Redis, Docker) differs from the PHP and MySQL setup for Hostinger described below.
+- [`AGENTS.md`](AGENTS.md) holds the working rules for AI coding agents, taken from the spec.
 
 The app works without the API, using content bundled into it. With the API connected, content edited in the database (places, itineraries, exchange rates, phrases and so on) reaches the app the next time it starts, without publishing a new app version.
 

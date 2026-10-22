@@ -1,0 +1,103 @@
+# Decision log
+
+Records product and technical decisions for Bali Experience AI, as §52 of the [specification](spec/bali-experience-ai-spec-v1.0.md) requires: *"Do not invent business policy. Record unresolved business decisions explicitly."*
+
+Each entry has a status:
+
+- **Decided:** settled; follow it.
+- **Open:** needs an owner's call before the work that depends on it starts.
+- **Proposed:** a recommendation awaiting confirmation.
+
+Add new entries at the end with the next number. Do not rewrite a decided entry; supersede it with a new one that links back.
+
+---
+
+## D-001: Adopt the specification as the authoritative reference
+
+- **Status:** Decided, 2026-10-22
+- **Decision:** `docs/spec/bali-experience-ai-spec-v1.0.pdf` is the authoritative product and technical specification. The Markdown copy beside it exists for search and review.
+- **Consequence:** New work follows the spec's domain model, roadmap (§42) and agent rules (§43–§44). Where the existing code differs, the gap is tracked in [gap-analysis.md](gap-analysis.md) and resolved through entries in this log.
+
+## D-002: Backend stack and hosting
+
+- **Status:** Open (blocks M01)
+- **Context:** The spec requires NestJS, PostgreSQL with PostGIS, Prisma, Redis/BullMQ, WebSockets and Docker, deployed cloud-agnostically (§7, §40, §50). The current backend is a PHP API on MySQL, built to run on Hostinger Cloud Hosting, which offers PHP and MySQL. As far as we know, Hostinger's shared and cloud hosting plans do not run Docker, PostgreSQL or Redis. Confirm against the plan you hold.
+- **Options:**
+  1. **Adopt the spec stack** on a host that runs containers (for example a VPS, including Hostinger's VPS plans, or a managed container platform with managed PostgreSQL). Keep the PHP API only until M02 replaces it.
+  2. **Keep PHP and MySQL** and treat the spec's stack as a later migration. This contradicts §7, §11 (PostGIS) and the M01 acceptance criteria.
+  3. **Hybrid:** spec stack for the API and database on a container host; Hostinger Cloud Hosting serves only the static web build and marketing pages.
+- **Recommendation:** Option 1 or 3, with the current PHP API kept as the interim content source until M02.
+- **Needs:** the owner's choice of hosting and budget.
+
+## D-003: Repository layout
+
+- **Status:** Proposed (follows D-002)
+- **Proposal:** Convert to the §8 pnpm + Turborepo monorepo during M01: `app/` → `apps/mobile`; new `apps/api`, `apps/admin`, `apps/vendor`; shared `packages/*`; `prisma/` replaces `database/`. Retire `api/`, `database/` and `deploy/` once M02 serves the same content.
+
+## D-004: Product name
+
+- **Status:** Open
+- **Context:** The app ships as "Bali Guide" (`app/app.json`, bundle ID `com.lightandpulse.baliguide`). The spec names the product "Bali Experience AI". Store listings and bundle identifiers are hard to change after release.
+- **Needs:** the final consumer-facing name and bundle identifiers.
+
+## D-005: Existing places become Destinations
+
+- **Status:** Proposed
+- **Proposal:** The 22 curated "places" map to the spec's Destination entity, not Experience, since they are attractions rather than bookable vendor products. Keep their slugs in a `slug` column and give each record an opaque ID (§11). Their free-text entry fees stay informational until they are modelled as priced Experiences with real availability (§3: never invent prices).
+
+## D-006: Status of existing etiquette and tips
+
+- **Status:** Proposed
+- **Proposal:** Import the current etiquette and per-place tips as draft `CulturalRule` records with `verified = false` and severity left for a cultural reviewer to set (§28). They are not enforced in recommendations until reviewed.
+- **Needs:** who acts as `CULTURAL_REVIEWER` (D-010).
+
+## D-007: Payment provider
+
+- **Status:** Open (blocks M06)
+- **Context:** §22 lists card, bank transfer, QR/QRIS and e-wallet behind a provider abstraction but names no provider.
+- **Needs:** the provider or providers, merchant account details, settlement currency and refund policy.
+
+## D-008: Revenue rules
+
+- **Status:** Open (blocks M06)
+- **Context:** §23 requires vendor, guide and driver allocations, a platform fee, tax and an optional community allocation, configurable and versioned. The spec sets no percentages.
+- **Needs:** platform fee, tax treatment, community allocation policy and payout schedule.
+
+## D-009: AI model provider
+
+- **Status:** Open (blocks M03)
+- **Needs:** the LLM provider and model, data-processing terms, and a monthly cost budget for the AI gateway (§24).
+
+## D-010: Cultural governance ownership
+
+- **Status:** Open (blocks M09, affects M03)
+- **Context:** §28 requires rules curated by authorized reviewers, with a source for each rule.
+- **Needs:** who the cultural reviewers are (for example a local cultural adviser or partner organization), which sources count as authoritative, and how rule changes are approved.
+
+## D-011: Local-impact and sustainability criteria
+
+- **Status:** Open (blocks M09)
+- **Context:** §29 requires 0–100 scores "based on documented platform criteria". The criteria are not in the spec.
+- **Needs:** the scoring criteria and who assesses vendors against them.
+
+## D-012: Maps, routing and weather providers
+
+- **Status:** Open (blocks M04)
+- **Needs:** providers for routing (§30), maps, and weather/traffic data, chosen with their licence terms and cost.
+
+## D-013: Launch languages
+
+- **Status:** Open (affects M01 onboarding)
+- **Context:** Onboarding includes a language step (§13). The app is English-only today.
+- **Needs:** MVP languages (for example English and Bahasa Indonesia) and who supplies translations.
+
+## D-014: Data retention and deletion
+
+- **Status:** Open (required before production, §34)
+- **Needs:** retention periods for account, trip, location, consent and payment-related records, and the user deletion process.
+
+## D-015: Truncated MVP scope text in the spec
+
+- **Status:** Open
+- **Context:** In §4, the Traveller row of the MVP scope table is cut off in the source PDF after "booking, payment, M…". The missing items are unknown.
+- **Needs:** the complete text from the specification's author.
